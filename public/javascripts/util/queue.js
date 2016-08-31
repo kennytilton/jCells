@@ -2,10 +2,6 @@
  * Created by kenneth on 8/29/16.
  */
 
-/**
- * Created by kenneth on 8/29/16.
- */
-
 /* https://gist.github.com/Benvie/9988604*/
 
 var MISSING = {};
@@ -65,8 +61,6 @@ define(ArrayQueue.prototype, {
     }
 });
 
-
-
 function ListQueue() {
     this.size = 0;
     this._tail = null;
@@ -107,7 +101,7 @@ define(ListQueue.prototype, {
     }
 });
 
-
+/*
 function assert(value, message) {
     if (!value) {
         throw message;
@@ -127,12 +121,15 @@ function test(Queue) {
     is(queue.shift(), "b", Queue.name);
     is(queue.shift(), "c", Queue.name);
 }
+*/
 
-
+/*
 test(Array);
 test(ArrayQueue);
 test(ListQueue);
 console.log('tests OK');
+*/
+
 //noinspection JSUnusedGlobalSymbols
 var array = [];
 //noinspection JSUnusedGlobalSymbols
@@ -158,26 +155,36 @@ var Stack = function() {
         return [
             // push function
             function()
-            { return _elements.push .apply(_elements,arguments); },
+            { return _elements.push .apply(_elements,arguments); }
             // pop function
-            function()
-            { return _elements.pop .apply(_elements,arguments); },
-            function() { return _elements.length; },
-            function(n) { return _elements.length=n; }];
+            , function()
+            { return _elements.pop .apply(_elements,arguments); }
+            , function() { return _elements.length; }
+            , function(n) { return _elements.length=n; }
+            , function () {
+                return _elements[_elements.length-1];
+            }];
     })();
     this.push=functionSet[0];
     this.pop=functionSet[1];
     this.getLength=functionSet[2];
     this.setLength=functionSet[3];
+    this.peek=functionSet[4];
     // initializing the stack with given arguments
     this.push.apply(this,arguments);
 };
 
+/*
  var s=new Stack(0,1), e;
  s.push(2);
+
+ console.log('peek2='+s.peek());
  console.log(s.getLength()); // 3
  while(undefined!==(e=s.pop()))
  console.log('cool '+e); // 2, 1, 0
 
-
+*/
 module.exports.Stack = Stack;
+
+module.exports.ArrayQueue = ArrayQueue;
+module.exports.ListQueue = ListQueue;
