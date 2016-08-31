@@ -6,7 +6,7 @@ function clg () {
     var args = Array.prototype.slice.call(arguments);
     console.log.apply(console, args);
 }
-function ass (test, msg) {
+function ast (test, msg) {
     console.assert(test,msg);
 }
 var window = {'callStack': []};
@@ -22,9 +22,9 @@ function callerPeek () {
 }
 
 function callerPush(c) {
-    ass(c instanceof Cell);
+    ast(c instanceof Cell);
     cstack().push(c);
-    ass(callerPeek()==c,'peeknope');
+    ast(callerPeek()==c,'peeknope');
 }
 
 function callerPop () {
@@ -32,13 +32,6 @@ function callerPop () {
 }
 
 function Cell(name,value,md) {
-    /*if (md) {
-        this.md = md;
-        md.slot = md.slot || {};
-        this.md.slot[name] = value;
-    } else {
-        this.value = value;
-    }*/
     this.name = name;
     this.md = md;
     this.callers = new Set();
@@ -65,14 +58,8 @@ function Cell(name,value,md) {
                 , name, {
                     enumerable: true
                     , set: this.slotValueSet
-                    , get: function () {
-                        let caller = callerPeek()
-                            , cs = this.callers;
-                        if (caller) {
-                            cs.add(caller);
-                        }
-                        return this.pv;
-                    }
+                    , get: this.slotValue
+
                 });
         }
     };
@@ -85,9 +72,15 @@ function CRule(rule) {
 
 Cell.prototype.slotValue = function () {
     let c = this;
-    console.log('cslotv ', c.name, c.pv);
+    ast(c instanceof Cell);
 
-    console.assert(c instanceof Cell);
+    let caller = callerPeek()
+        , cs = this.callers;
+
+    if (caller) {
+        cs.add(caller);
+    }
+
     if ('pv' in c) {
         return c.pv;
     } else {
@@ -97,8 +90,6 @@ Cell.prototype.slotValue = function () {
 
 Cell.prototype.slotValueSet = function (newv) {
     this.pv = newv;
-    clg('svset!!!', newv, this.name, this.callers.size);
-
     this.callers.forEach( function (caller) {
         caller.calcNSet();
     });
@@ -111,13 +102,11 @@ Cell.prototype.calcNSet = function () {
 
 Cell.prototype.evic = function () {
     let c = this;
-    clg('evic in prepush',c.name);
     callerPush(c);
     try {
         return c.pv = c.rule.fn(c);
     } finally {
         callerPop();
-        clg('evic out postpop',c.name);
     }
 }
 
@@ -125,13 +114,33 @@ function cq (rule) {
     return new CRule(rule);
 }
 
+/*
+ A minimal proof of concept, precursor to my standard
+ Cells "Hello, world" in which a knock-knock by the World
+ goes unanswered until our resident returns home.
 
+ */
 
-var e = new Cell('action');
-console.log('eact %s',e.action);
+/*
+Our first Cell is a so-called "input" Cell, akin to a
+a spreadsheet cell in which one plays "what if?", eg, a cell where
+the user can try different prime rates to see how their budget changes.
 
-var c = new Cell('where', cq( function (c) {
-    console.log('in rule!! %s', typeof c);
+In UI apps, we have cells for keystrokes, mouse clicks, etc that get fed
+in the corresponding event handlers.
+
+In this case we will just move things along with top-level assignments.
+
+ */
+var e = new Cell('action'); // the resident action (leave or return)
+
+/*
+And now a so-called roled or formula cell, which will establish
+a dependency on the action simply by reading the value with
+conventional property access syntax.
+
+ */
+var c = new Cell('location', cq( function (c) {
     switch (e.action) {
         case 'leave':
             return 'away';
@@ -142,18 +151,18 @@ var c = new Cell('where', cq( function (c) {
     }
 }));
 
-console.assert(c.where=='MIA', 'MIA nope');
-console.log('cwhere=', c.where);
+ast(c.location=='MIA');
+
+clg('location before any action', c.location);
 
 e.action = 'leave';
 
-console.assert(c.where=='away', 'away nope');
-console.log('cwhere=', c.where);
+ast(c.location=='away');
 
-/*
-var p = {};
-var mc = new Cell('where','home',p);
+clg('location after leave', c.location);
 
-console.log('w=',Object.keys(mc));
-console.log('w=', p.where);
-*/
+e.action = 'return';
+
+ast(c.location=='home');
+
+clg('location after return', c.location);
