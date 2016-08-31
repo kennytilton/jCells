@@ -64,17 +64,12 @@ function Cell(name,value,md) {
             Object.defineProperty(this
                 , name, {
                     enumerable: true
-                    , set: function (newv) {
-                        return this.pv = newv;
-                    }
+                    , set: this.slotValueSet
                     , get: function () {
-                        let caller = callerPeek();
-                        console.log('get cinput', this.name
-                                    , 'caller', caller);
+                        let caller = callerPeek()
+                            , cs = this.callers;
                         if (caller) {
-                            console.log('caller!',caller.name
-                                ,'calls', this.name);
-                            this.callers.add[caller];
+                            cs.add(caller);
                         }
                         return this.pv;
                     }
@@ -100,9 +95,18 @@ Cell.prototype.slotValue = function () {
     }
 }
 
-function clg () {
-    var args = Array.prototype.slice.call(arguments);
-    console.log.apply(console, args);
+Cell.prototype.slotValueSet = function (newv) {
+    this.pv = newv;
+    clg('svset!!!', newv, this.name, this.callers.size);
+
+    this.callers.forEach( function (caller) {
+        caller.calcNSet();
+    });
+    return this.pv;
+}
+
+Cell.prototype.calcNSet = function () {
+    return this.evic();
 }
 
 Cell.prototype.evic = function () {
