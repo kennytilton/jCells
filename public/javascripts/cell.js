@@ -24,46 +24,38 @@ function callerPeek () {
 function callerPush(c) {
     ast(c instanceof Cell);
     cstack().push(c);
-    ast(callerPeek()==c,'peeknope');
 }
 
 function callerPop () {
     cstack().pop();
 }
 
-function Cell(name,value,md) {
-    this.name = name;
-    this.md = md;
+var gUnbound = Symbol("unbound");
+
+function Cell(value) {
     this.callers = new Set();
-    if (md) {
-        Object.defineProperty(md
-            , name, {
+
+    if (value instanceof CRule) {
+        this.rule = value;
+        this.pv = gUnbound;
+        Object.defineProperty(this
+            , 'v', {
                 enumerable: true,
-                writable: true,
-                value: value
-            });
-
+                get: function () {
+                    return this.slotValue();
+                }});
     } else {
-        if (value instanceof CRule) {
-            this.rule = value;
-            Object.defineProperty(this
-                , name, {
-                    enumerable: true,
-                    get: function () {
-                        return this.slotValue();
-                    }});
-        } else {
-            this.pv = value;
-            Object.defineProperty(this
-                , name, {
-                    enumerable: true
-                    , set: this.slotValueSet
-                    , get: this.slotValue
+        this.pv = value;
+        Object.defineProperty(this
+            , 'v', {
+                enumerable: true
+                , set: this.slotValueSet
+                , get: this.slotValue
 
-                });
-        }
+            });
     };
 }
+
 
 function CRule(rule) {
     this.fn = rule;
@@ -81,10 +73,10 @@ Cell.prototype.slotValue = function () {
         cs.add(caller);
     }
 
-    if ('pv' in c) {
-        return c.pv;
-    } else {
+    if (c.pv==gUnbound) {
         return c.evic();
+    } else {
+        return c.pv;
     }
 }
 
@@ -126,22 +118,22 @@ Our first Cell is a so-called "input" Cell, akin to a
 a spreadsheet cell in which one plays "what if?", eg, a cell where
 the user can try different prime rates to see how their budget changes.
 
-In UI apps, we have cells for keystrokes, mouse clicks, etc that get fed
+In UI apps, we have input cells for keystrokes, mouse clicks, etc that get fed
 in the corresponding event handlers.
 
 In this case we will just move things along with top-level assignments.
 
  */
-var e = new Cell('action'); // the resident action (leave or return)
+var action = new Cell(); // the resident action (leave or return)
 
 /*
-And now a so-called roled or formula cell, which will establish
+And now a so-called ruled or formula cell, which will establish
 a dependency on the action simply by reading the value with
 conventional property access syntax.
 
  */
-var c = new Cell('location', cq( function (c) {
-    switch (e.action) {
+var location = new Cell( cq( function (c) {
+    switch (action.v) {
         case 'leave':
             return 'away';
         case 'return':
@@ -151,18 +143,18 @@ var c = new Cell('location', cq( function (c) {
     }
 }));
 
-ast(c.location=='MIA');
+ast(location.v=='MIA');
 
-clg('location before any action', c.location);
+clg('location before any action', location.v);
 
-e.action = 'leave';
+action.v = 'leave';
 
-ast(c.location=='away');
+ast(location.v == 'away');
 
-clg('location after leave', c.location);
+clg('location after leave', location.v );
 
-e.action = 'return';
+action.v = 'return';
 
-ast(c.location=='home');
+ast(location.v=='home');
 
-clg('location after return', c.location);
+clg('location after return', location.v);
