@@ -82,10 +82,14 @@ Cell.prototype.slotValue = function () {
 
 Cell.prototype.slotValueSet = function (newv) {
     this.pv = newv;
+    this.propagate();
+    return this.pv;
+}
+
+Cell.prototype.propagate = function () {
     this.callers.forEach( function (caller) {
         caller.calcNSet();
     });
-    return this.pv;
 }
 
 Cell.prototype.calcNSet = function () {
@@ -96,7 +100,9 @@ Cell.prototype.evic = function () {
     let c = this;
     callerPush(c);
     try {
-        return c.pv = c.rule.fn(c);
+        c.pv = c.rule.fn(c);
+        c.propagate();
+        return c.pv;
     } finally {
         callerPop();
     }
@@ -124,6 +130,10 @@ in the corresponding event handlers.
 In this case we will just move things along with top-level assignments.
 
  */
+function weAre(tag='anon') {
+    clg(`${tag}: we are ${location.v} after ${action.v || 'nada'}, alarm ${alarm.v}`);
+};
+
 var action = new Cell(); // the resident action (leave or return)
 
 /*
@@ -143,18 +153,34 @@ var location = new Cell( cq( function (c) {
     }
 }));
 
-ast(location.v=='MIA');
+/*
+    a rule off a rule to confirm recursive propagation
+ */
 
-clg('location before any action', location.v);
+var alarm = new Cell( cq( function (c) {
+    switch (location.v) {
+        case 'home':
+            return 'off';
+
+        default:
+            return 'on';
+    }
+}));
+
+/* --- test --- */
+
+// before any action:
+
+ast(location.v=='MIA');
+ast(alarm.v='on');
+weAre('init');
 
 action.v = 'leave';
-
 ast(location.v == 'away');
-
-clg('location after leave', location.v );
+ast(alarm.v='on');
+weAre();
 
 action.v = 'return';
-
+ast(alarm.v='off');
 ast(location.v=='home');
-
-clg('location after return', location.v);
+weAre('back');
