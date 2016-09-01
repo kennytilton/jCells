@@ -9,6 +9,9 @@ function clg () {
 function ast (test, msg) {
     console.assert(test,msg);
 }
+
+// --- dependency management ------------
+
 var window = {'callStack': []};
 
 function cstack () {
@@ -32,87 +35,133 @@ function callerPop () {
 
 var gUnbound = Symbol("unbound");
 
-function Cell(value) {
-    this.callers = new Set();
 
-    if (value instanceof CRule) {
-        this.rule = value;
-        this.pv = gUnbound;
-        Object.defineProperty(this
-            , 'v', {
-                enumerable: true,
-                get: function () {
-                    return this.slotValue();
-                }});
-    } else {
-        this.pv = value;
-        Object.defineProperty(this
-            , 'v', {
-                enumerable: true
-                , set: this.slotValueSet
-                , get: this.slotValue
+// --- Cells ----------------------
 
+class Cell {
+    constructor(value, formula, inputp, ephemeralp, observer) {
+        this.callers = new Set();
+
+        this.ephemeralp = ephemeralp;
+        this.inputp = inputp;
+        this.observer = observer;
+
+        if (formula) {
+            this.rule = formula;
+            this.pv = gUnbound;
+            Object.defineProperty(this
+                , 'v', {
+                    enumerable: true,
+                    get: function () {
+                        return this.slotValue();
+                    }
+                });
+        } else {
+            this.pv = value;
+            Object.defineProperty(this
+                , 'v', {
+                    enumerable: true
+                    , set: this.slotValueSet
+                    , get: this.slotValue
+
+                });
+        }
+    }
+    named (n) {
+        this.name=n;
+        return this;
+    }
+    obs (fn) {
+        this.observer = fn;
+        return this;
+    }
+    slotValue() {
+        let c = this;
+        ast(c instanceof Cell);
+
+        let caller = callerPeek()
+            , cs = this.callers;
+
+        if (caller) {
+            cs.add(caller);
+        }
+
+        if (c.pv == gUnbound) {
+            return c.evic();
+        } else {
+            return c.pv;
+        }
+    }
+
+    slotValueSet(newv) {
+        let vPrior = this.pv
+            , rv = this.pv = newv;
+
+        this.propagate(vPrior, this.callers);
+
+        if (this.ephemeralp)
+            this.pv = null;
+        return rv;
+    }
+
+    propagate(vPrior, callers) {
+        // not sure why callers are passed in
+        if (callers) {
+            callers.forEach(function (caller) {
+                caller.calcNSet();
             });
-    };
-}
-
-
-function CRule(rule) {
-    this.fn = rule;
-    this.vstate = Symbol('unbound');
-}
-
-Cell.prototype.slotValue = function () {
-    let c = this;
-    ast(c instanceof Cell);
-
-    let caller = callerPeek()
-        , cs = this.callers;
-
-    if (caller) {
-        cs.add(caller);
+        }
+        if (this.observer) {
+            this.observer( this.name, null, this.pv, vPrior, this);
+        }
     }
 
-    if (c.pv==gUnbound) {
-        return c.evic();
-    } else {
-        return c.pv;
+    calcNSet() { // this will get more interesting...
+        let vPrior = this.pv
+            , newv = this.evic();
+        this.propagate( vPrior, this.callers);
+        return newv;
+    }
+
+    evic() { // ensureValueIsCurrent
+        let c = this;
+        callerPush(c);
+        try {
+            c.pv = c.rule(c);
+            return c.pv;
+        } finally {
+            callerPop();
+        }
     }
 }
 
-Cell.prototype.slotValueSet = function (newv) {
-    this.pv = newv;
-    this.propagate();
-    return this.pv;
+// --- some handy cell factories -------------------
+
+function cF(formula) {
+    // make a conventional formula cell
+    return new Cell(null, formula, false, false, null);
 }
 
-Cell.prototype.propagate = function () {
-    this.callers.forEach( function (caller) {
-        caller.calcNSet();
-    });
+function cFi(formula) {
+    /*
+     make a cell whose formula runs once for
+     its initial value but then is set procedurally
+     as an input cell.
+      */
+    return new Cell(null, formula, true, false, null);
+}
+function cI(value) {
+    // standard input cell
+    return new Cell(value, null, true, false, null);
 }
 
-Cell.prototype.calcNSet = function () {
-    return this.evic();
+function cIe(value) {
+    // ephemeral input cell
+    return new Cell(value, null, true, true, null);
 }
 
-Cell.prototype.evic = function () {
-    let c = this;
-    callerPush(c);
-    try {
-        c.pv = c.rule.fn(c);
-        c.propagate();
-        return c.pv;
-    } finally {
-        callerPop();
-    }
-}
+/* --------------------------------------------------------------
 
-function cq (rule) {
-    return new CRule(rule);
-}
-
-/*
  A minimal proof of concept, precursor to my standard
  Cells "Hello, world" in which a knock-knock by the World
  goes unanswered until our resident returns home.
@@ -130,11 +179,16 @@ in the corresponding event handlers.
 In this case we will just move things along with top-level assignments.
 
  */
-function weAre(tag='anon') {
-    clg(`${tag}: we are ${location.v} after ${action.v || 'nada'}, alarm ${alarm.v}`);
-};
 
-var action = new Cell(); // the resident action (leave or return)
+var action = cIe()
+                .named('action')
+                .obs((name, me, newv, oldv, c) => {
+                    clg(`HCO: action was ${newv}`);
+                });
+
+ast(action instanceof Cell);
+//    'obs((name, me, newv, oldv, c)=>
+  //              clg(`obs! ${name})); // the resident action (leave or return)
 
 /*
 And now a so-called ruled or formula cell, which will establish
@@ -142,22 +196,29 @@ a dependency on the action simply by reading the value with
 conventional property access syntax.
 
  */
-var location = new Cell( cq( function (c) {
-    switch (action.v) {
+
+function obsDbg (name, me, newv, priorv, c) {
+    clg(`OBS: ${name} now ${newv} (was ${priorv})`);
+}
+
+var location = cF(c=> {
+        switch (action.v) {
         case 'leave':
             return 'away';
         case 'return':
             return 'home';
         default:
             return 'MIA';
-    }
-}));
+        }
+    })
+    .named('locus')
+    .obs(obsDbg);
 
 /*
     a rule off a rule to confirm recursive propagation
  */
 
-var alarm = new Cell( cq( function (c) {
+var alarm = cF( c=>{
     switch (location.v) {
         case 'home':
             return 'off';
@@ -165,22 +226,72 @@ var alarm = new Cell( cq( function (c) {
         default:
             return 'on';
     }
-}));
+});
+
+var noise = cIe()
+                .named('noise')
+                .obs(obsDbg);
+
+const hworld = 'Hello, world.'
+    , klanging = 'klang-klang-klang'
+    , silence = '<Silence>';
+
+var response = cF( c=>{
+    switch (noise.v) {
+    case 'knock-knock':
+        switch (location.v) {
+            case 'home':
+                return hworld;
+                break;
+            default:
+                return silence;
+        }
+        break;
+    case 'crash':
+        switch (alarm.v) {
+            case 'on':
+                return klanging;
+                break;
+            default:
+                switch (location.v) {
+                    case 'home':
+                        return 'I have a gun!';
+                        break;
+                    default:
+                        return '<Stealing sounds>';
+                }
+        }
+        break;
+    default:
+        return null;
+    }})
+    .named('response')
+    .obs(obsDbg);
 
 /* --- test --- */
 
 // before any action:
 
 ast(location.v=='MIA');
-ast(alarm.v='on');
-weAre('init');
+ast(alarm.v=='on');
+ast(response.v==null);
 
 action.v = 'leave';
+ast(action.v==null); // ephemerality in action
 ast(location.v == 'away');
-ast(alarm.v='on');
-weAre();
+ast(alarm.v=='on');
+
+noise.v = 'knock-knock';
+ast(response.v==silence);
+
+noise.v = 'crash';
+ast(response.v==klanging);
 
 action.v = 'return';
-ast(alarm.v='off');
+ast(action.v==null); // ephemerality
+ast(alarm.v=='off');
 ast(location.v=='home');
-weAre('back');
+
+noise.v = 'knock-knock';
+ast(response.v==hworld);
+
