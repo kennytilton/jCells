@@ -114,14 +114,16 @@ var response = C.cF( c=>{
 
 /* --- test --- */
 
-// before any action:
+// see below for actual output from recent run
 
+
+// before any action:
 ast(location.v=='MIA');
 ast(alarm.v=='on');
 ast(response.v==null);
 
 action.v = 'leave';
-ast(action.v==null); // ephemerality in action
+ast(action.v==null); // ephemerals reverts to nil after propagating
 ast(location.v == 'away');
 ast(alarm.v=='on');
 
@@ -132,10 +134,33 @@ noise.v = 'crash';
 ast(response.v==klanging);
 
 action.v = 'return';
-ast(action.v==null); // ephemerality
+ast(action.v==null);
 ast(alarm.v=='off');
 ast(location.v=='home');
 
 noise.v = 'knock-knock';
 ast(response.v==hworld);
 
+/* --- expected output ----------
+
+ n.b some things seem out of order because this light version
+ of Cells lacks the so-called data integrity logic that
+ carefully orchestrates state change, propagation, and
+ observation. eg, observers should not run until after
+ all propagation has run, and then they should run in
+ order.
+
+ OBS: locus now away (was MIA)
+ HCO: action was leave
+ OBS: response now <Silence> (was null)
+ OBS: noise now knock-knock (was undefined)
+ OBS: response now klang-klang-klang (was <Silence>)
+ OBS: noise now crash (was null)
+ OBS: response now null (was klang-klang-klang)
+ OBS: response now null (was null)
+ OBS: locus now home (was away)
+ HCO: action was return
+ OBS: response now Hello, world. (was null)
+ OBS: noise now knock-knock (was null)
+
+ */
