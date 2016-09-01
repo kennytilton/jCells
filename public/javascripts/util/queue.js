@@ -1,6 +1,3 @@
-/**
- * Created by kenneth on 8/29/16.
- */
 
 /* https://gist.github.com/Benvie/9988604*/
 
