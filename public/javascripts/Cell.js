@@ -6,6 +6,8 @@
  * Created by kenneth on 8/31/16.
  */
 
+var H = require('./cHeader')
+    , I = require('./integrity');
 /*
  function clg () {
  var args = Array.prototype.slice.call(arguments);
@@ -22,19 +24,12 @@ function ast (test, msg) {
 
 // --- dependency management ------------
 
-var window = {
-    'callStack': []
-    //, 'obsQ': new que.Queue()
-};
-
-function obsQ () {
-    return window.obsQ;
-}
 function cstack () {
-    return window.callStack;
+    return H.callStack;
 }
 
 function callerPeek () {
+    throw 'fixme';
     let stk = cstack()
         , ct = stk.length;
     return ct? stk[ct-1]:null;
@@ -66,6 +61,7 @@ class Cell {
         this.ephemeralp = ephemeralp;
         this.inputp = inputp;
         this.observer = observer;
+        this.optimizedAwayp = false;
 
         if (formula) {
             this.rule = formula;
@@ -108,14 +104,11 @@ class Cell {
     }
 
     slotValue() {
-        let c = this;
-        ast(c instanceof Cell);
-
-        let caller = callerPeek()
-            , cs = this.callers;
+        let c = this
+            , caller = callerPeek();
 
         if (caller) {
-            cs.add(caller);
+            this.callers.add(caller);
         }
 
         if (c.pv == gUnbound) {
@@ -165,6 +158,37 @@ class Cell {
             callerPop();
         }
     }
+
+    ephemeralReset() {
+        if (this.ephemeralp) { // tolerate calls on non-ephp
+            /*
+             we defer resetting ephemerals because everything
+             else gets deferred and we must not in fact reset it until
+             within finBiz we are sure all callers have been recalculated
+             and all observers completed (which happens with recalc).
+             */
+            I.withIntegrity( I.qEphemReset, this, function () {
+                let me = rc.md;
+                if (me) {
+                    throw "md fnyi";
+                } else {
+                    clg(`ephreset! ${this.name}`)
+                    this.pv = null;
+                }
+            });
+        }
+    }
+
+    recordDependency(used) {
+        if (!used.optimizedAwayp) {
+            this.useds.add(used);
+            used.callerEnsure(this);
+        }
+    }
+    callerEnsure(caller) {
+        this.callers.add(caller);
+    }
+
 }
 
 // --- some handy cell factories -------------------

@@ -49,7 +49,6 @@ function finBiz (q) {
     }
 }
 
-
 function withoutIntegrity (fn) {
     let wi = gWithinIntegrity
         , dc = H.deferChanges
@@ -114,3 +113,7 @@ function withIntegrity (queue, deferInfo, action) {
 function withChg(id, fn) {
     withIntegrity( qChange, id, fn);
 }
+
+module.exports.withIntegrity = withIntegrity;
+module.exports.withChg = withChg;
+module.exports.qEphemReset = qEphemReset;

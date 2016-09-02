@@ -3,6 +3,7 @@
  */
 
 var C = require('./cell');
+var H = require("./cHeader.js");
 
 function clg () {
     var args = Array.prototype.slice.call(arguments);
@@ -12,40 +13,22 @@ function ast (test, msg) {
     console.assert(test,msg);
 }
 
-C.Cell.prototype.ephemeralReset = function () {
-    if (this.ephemeralp) { // tolerate calls on non-ephp
-        /*
-         as of Cells3 we defer resetting ephemerals because everything
-         else gets deferred and we cannot /really/ reset it until
-         within finish_business we are sure all callers have been recalculated
-         and all observers completed (which happens with recalc).
-         */
-        with-integrity('ephemeral-reset'
-            , rc
-            , function () {
 
-                let me = rc.md;
-                if (me) {
-                    throw "md fnyi";
-                } else {
-                    clg(`ephreset! ${this.name}`)
-                    this.pv = null;
-                }
-            });
-    }};
+C.Cell.prototype.ensureValueIsCurrent = function (tag, ensurer) {
+    if (H.gNotToBe) {
+        retutn(this.boundp && this.validp()) ? this.pv : null;
+    } else if (this.currentp()) {
+        return this.pv;
+    } else if (this.inputp && this.validp()
+        && !(this.rule && this.optimize == 'when-value'
+        && !this.pv)) {
+        return this.pv;
+    } else if (this.md && this.md.mDeadp()) {
+        throw `evic: read of dead ${this.name} of ${this.md.name}`;
+    } else if next condition here
 
-var action = cIe().named('acto');
-action.v = 'go';
-
+}
 /*
-(defn record-dependency [used]
-(when-not (c-optimized-away? used)
-    (assert *depender*)
-    (trx nil :reco-dep!!! :used (c-slot used) :caller (c-slot *depender*))
-(rmap-setf [:useds *depender*]
-(conj (c-useds *depender*) used))
-(caller-ensure used *depender*)))
-
 (declare calculate-and-set )
 
 (defn ensure-value-is-current
