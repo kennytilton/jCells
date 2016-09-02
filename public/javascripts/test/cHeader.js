@@ -29,6 +29,9 @@ function qtest(Queue) {
     is(queue.shift(), "a", Queue.name);
     is(queue.shift(), "b", Queue.name);
     is(queue.shift(), "c", Queue.name);
+    if (queue.shift()) {
+        throw('oops');
+    }
     console.log('qtest ok '+ Queue)
 }
 

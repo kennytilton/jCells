@@ -1,13 +1,17 @@
 /**
+ * Created by kenneth on 9/2/16.
+ */
+
+/**
  * Created by kenneth on 8/31/16.
  */
 
 /*
-function clg () {
-    var args = Array.prototype.slice.call(arguments);
-    console.log.apply(console, args);
-}
-*/
+ function clg () {
+ var args = Array.prototype.slice.call(arguments);
+ console.log.apply(console, args);
+ }
+ */
 
 function clg() {
     console.log(Array.from(arguments).join(","));
@@ -18,15 +22,21 @@ function ast (test, msg) {
 
 // --- dependency management ------------
 
-var window = {'callStack': []};
+var window = {
+    'callStack': []
+    //, 'obsQ': new que.Queue()
+};
 
+function obsQ () {
+    return window.obsQ;
+}
 function cstack () {
     return window.callStack;
 }
 
 function callerPeek () {
     let stk = cstack()
-    , ct = stk.length;
+        , ct = stk.length;
     return ct? stk[ct-1]:null;
 }
 
@@ -86,6 +96,17 @@ class Cell {
         this.observer = fn;
         return this;
     }
+
+    currentp () {
+        return pulse >= H.pulse;
+    }
+    pulseUpdate (key='anon') {
+        if (!this.optimizedAwayp) {
+            ast(H.pulse >= this.pulse);
+            this.pulse = H.pulse;
+        }
+    }
+
     slotValue() {
         let c = this;
         ast(c instanceof Cell);
@@ -158,7 +179,7 @@ function cFi(formula) {
      make a cell whose formula runs once for
      its initial value but then is set procedurally
      as an input cell.
-      */
+     */
     return new Cell(null, formula, true, false, null);
 }
 function cI(value) {

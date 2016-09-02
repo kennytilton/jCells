@@ -32,8 +32,8 @@ function ast (test, msg) {
 var action = C.cIe()
         .named('action')
         .obs((name, me, newv, oldv, c) => {
-        clg(`HCO: action was ${newv}`);
-});
+            clg(`HCO: action was ${newv}`);
+        });
 
 ast(action instanceof C.Cell);
 //    'obs((name, me, newv, oldv, c)=>
@@ -123,7 +123,7 @@ ast(alarm.v=='on');
 ast(response.v==null);
 
 action.v = 'leave';
-ast(action.v==null); // ephemerals reverts to nil after propagating
+ast(action.v==null); // ephemerals revert to nil after propagating
 ast(location.v == 'away');
 ast(alarm.v=='on');
 
@@ -134,7 +134,6 @@ noise.v = 'crash';
 ast(response.v==klanging);
 
 action.v = 'return';
-ast(action.v==null);
 ast(alarm.v=='off');
 ast(location.v=='home');
 

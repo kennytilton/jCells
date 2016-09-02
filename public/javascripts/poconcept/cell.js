@@ -18,8 +18,14 @@ function ast (test, msg) {
 
 // --- dependency management ------------
 
-var window = {'callStack': []};
+var window = {
+    'callStack': []
+    //, 'obsQ': new que.Queue()
+};
 
+function obsQ () {
+    return window.obsQ;
+}
 function cstack () {
     return window.callStack;
 }
