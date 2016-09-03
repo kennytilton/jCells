@@ -24,6 +24,9 @@ function ArrayQueue() {
 
 //noinspection JSUnusedGlobalSymbols,JSUnusedGlobalSymbols
 define(ArrayQueue.prototype, {
+    emptyp: function emptyp() {
+        return this.size==0;
+    },
     push: function push(value) {
         this._items.push(value);
         return ++this.size;

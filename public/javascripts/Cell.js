@@ -28,35 +28,15 @@ function find(x,y) {
     }
 }
 
-// --- dependency management ------------
-
-function cstack () {
-    return H.callStack;
-}
-
-function callerPeek () {
-    throw 'fixme';
-    let stk = cstack()
-        , ct = stk.length;
-    return ct? stk[ct-1]:null;
-}
-
-function callerPush(c) {
-    ast(c instanceof Cell);
-    cstack().push(c);
-}
-
-function callerPop () {
-    cstack().pop();
-}
-
-var gUnbound = Symbol("unbound");
+const kUnbound = Symbol("unbound");
+const kUncurrent = Symbol("uncurrent");
+const kValid = Symbol("valid");
+const kNascent = Symbol("nascent");
 
 // --- Cells ----------------------
 
 class Cell {
     constructor(value, formula, inputp, ephemeralp, observer) {
-        this.state = 'nascent';
         this.pulse = 0;
         this.pulseLastChanged = 0;
         this.pulseObserved = 0;
@@ -74,7 +54,9 @@ class Cell {
 
         if (formula) {
             this.rule = formula;
-            this.pv = gUnbound;
+            this.pv = kUnbound;
+            this.state = H.kNascent;
+
             Object.defineProperty(this
                 , 'v', {
                     enumerable: true,
@@ -84,6 +66,8 @@ class Cell {
                 });
         } else {
             this.pv = value;
+            this.state = H.kValid;
+
             Object.defineProperty(this
                 , 'v', {
                     enumerable: true
@@ -92,6 +76,14 @@ class Cell {
 
                 });
         }
+    }
+
+    unboundp() {return this.pv==kUnbound;}
+    uncurrentp() {return this.pv==kUncurrent;}
+    validp() {return !(this.unboundp() || this.uncurrentp());}
+    valueState() {
+        return this.unboundp() ?
+                kUnbound : this.uncurrentp() ? kUncurrent : kValid;
     }
     named (n) {
         this.name=n;
@@ -105,19 +97,22 @@ class Cell {
         (this.unchangedIf || this.unChangedTest)(newv, oldv);
     }
     currentp() {
-        return pulse >= H.pulse;
+        //clg(`currentp this pulse ${this.pulse} vs pulse ${H.gpulse()}`);
+        return this.pulse >= H.gpulse();
     }
     pulseUpdate(key='anon') {
         if (!this.optimizedAwayp) {
-            ast(H.pulse >= this.pulse);
-            this.pulse = H.pulse;
+            ast(H.gpulse() >= this.pulse);
+            this.pulse = H.gpulse();
         }
     }
 
     ensureValueIsCurrent(tag, ensurer) {
+        //clg('evic entry');
         if (H.gNotToBe) {
             return (this.boundp && this.validp()) ? this.pv : null;
         } else if (this.currentp()) {
+            //clg('currentp');
             return this.pv;
         } else if (this.inputp
                     && this.validp()
@@ -129,6 +124,7 @@ class Cell {
         } else {
             let recalc = false;
             if (!this.validp()) {
+                //clg('evic not validp');
                 recalc = true;
             } else {
                 for (let used of this.useds.values()) {
@@ -153,20 +149,22 @@ class Cell {
     }
 
     slotValue() {
-        var rv = undefined;
+        let rv = undefined
+            , self = this;
+        //clg('cget depender in '+H.depender);
         I.withIntegrity(null,null, function () {
-            let vPrior = pv;
-            rv = this.ensureValueIsCurrent( 'c-read', null);
-            if (!this.md && this.state == 'nascent'
-                && H.pulse > this.pulseObserved) {
-                this.state = 'awake';
-                this.observe(vPrior, 'cget');
-                this.ephemeralReset();
+            let vPrior = self.pv;
+            rv = self.ensureValueIsCurrent( 'c-read', null);
+            if (!self.md && self.state == 'nascent'
+                && H.gpulse() > self.pulseObserved) {
+                self.state = 'awake';
+                self.observe(vPrior, 'cget');
+                self.ephemeralReset();
             }
         });
         if (H.depender) {
-            this.recordDependency(H.depender);
-        }
+            H.depender.recordDependency(this);
+        } //else clg('cget no depender '+rv);
         return rv;
     }
 
@@ -188,7 +186,7 @@ class Cell {
                 H.gCustomPropagator(this, vPrior);
             }
         } else {
-            this.pulseLastChanged = H.pulse;
+            this.pulseLastChanged = H.gpulse();
             let dp = H.depender
                 , cs = H.callStack
                 , pd = H.propDepth
@@ -199,7 +197,7 @@ class Cell {
                     // call not-to-be on those lostOK
                 }
                 this.propagateToCallers( callers);
-                if (H.pulse > this.pulseObserved
+                if (H.gpulse() > this.pulseObserved
                     || find(this.lazy, ['once-asked','always',true])) {
                     this.observe(vPrior,'propagate');
                 }
@@ -213,11 +211,11 @@ class Cell {
         }
     }
     propagateToCallers(callers) {
-        if (this.callers.size) {
-            I.withIntegrity(qNotify, c, function {
+        if (callers.size) {
+            I.withIntegrity(qNotify, c, ()=> {
                 H.causation.push(this); // this was (kinda) outside withIntegrity
                 try {
-                    for (let caller of this.callers.values()) {
+                    for (let caller of callers.values()) {
                         if (!(caller.state == 'quiesced'
                             || caller.currentp()
                             || find(caller.lazy, [true, 'always','once-asked'])
@@ -228,7 +226,7 @@ class Cell {
                 } finally {
                     H.causation.pop();
                 }
-            });
+        })
         }
     }
 
@@ -251,10 +249,13 @@ class Cell {
          rule of a formula and return its value, but along the
          way the links between dependencies and dependents get
          determined anew. */
-        H.callStack.push(this);
         let dp = H.depender
             , dc = H.deferChanges;
+
         try {
+            H.callStack.push(this);
+            H.depender = this;
+            H.deferChanges = true;
             this.unlinkFromUsed('pre-rule-clear');
             return this.rule(this);
         } finally {
@@ -269,7 +270,7 @@ class Cell {
                 this.calcNSet('c-awaken');
             }
         } else {
-            if (H.pulse > this.pulseObserved) {
+            if (H.gpulse() > this.pulseObserved) {
                 // apparently double calls have occurred
                 if (this.md) {
                     this.md[this.name] = this.pv;
@@ -293,7 +294,7 @@ class Cell {
                 if (me) {
                     throw "md fnyi";
                 } else {
-                    clg(`ephreset! ${this.name}`);
+                    //clg(`ephreset! ${this.name}`);
                     this.pv = null;
                 }
             });
@@ -301,37 +302,39 @@ class Cell {
     }
 
     valueAssume( newValue, propCode) {
+        let self = this;
         H.withoutCDependency(function () {
-           let priorValue = this.pv
-                , priorState = this.valueState;
-            this.pv = newValue;
-            this.state = 'awake';
-            if (this.md !this.synapticp) {
-                mdSlotValueStore( this.md, this.name, newValue);
+           let priorValue = self.pv
+                , priorState = self.valueState;
+            self.pv = newValue;
+            self.state = 'awake';
+            if (self.md && !self.synapticp) {
+                mdSlotValueStore( self.md, self.name, newValue);
             }
-            this.pulseUpdate('sv-assume');
+            self.pulseUpdate('sv-assume');
             if (propCode=='propagate'
                 || ['valid','uncurrent'].indexOf(priorState) == -1
-                || this.valueChanged( newValue, priorValue)) {
-                let optimize = this.rule? this.optimize:null;
+                || self.valueChanged( newValue, priorValue)) {
+                let optimize = self.rule? self.optimize:null;
                 if (optimize == 'when-value-t') {
-                    if (this.pv) {
-                        this.unlinkFromUsed(optimize);
+                    if (self.pv) {
+                        self.unlinkFromUsed(optimize);
                     }
                 } else if (optimize) {
-                    this.optimizeAwayMaybe( priorValue);
+                    self.optimizeAwayMaybe( priorValue);
                 }
             }
             if (!(propCode=='no-propagate'
-                    || this.optimizedAway)) {
-                this.propagate(priorValue, this.callers);
+                    || self.optimizedAway)) {
+                self.propagate(priorValue, self.callers);
             }
         });
         return newValue;
     }
     unlinkFromUsed(why) {
         for (let used of this.useds.values()) {
-            used.callers.remove(this);
+            clg(`${this.name} unlinks fromused dueto ${why}`);
+            used.callerDrop(this);
         }
         this.useds.clear();
     }
@@ -340,14 +343,18 @@ class Cell {
             this.md.cellsFlushed.push([this.name, this.pulseObserved]);
         }
     }
+    observe( vPrior, tag) {
+        clg(`OBS(${tag}: ${this.name} now ${this.pv} (was ${vPrior.toString()}`);
+    }
     optimizeAwayMaybe(vPrior) {
         if (this.rule
             && !this.useds.size
             && this.optimize
             && !this.optimizedAwayp
-            && this.valid()
+            && this.validp()
             && !this.synapticp
             && !this.inputp) {
+            clg(`opti-away!!! ${this.name}`);
             this.state = 'optimized-away'; // uhoh
             this.observe( vPrior, 'optimized-away');
             if (this.md) {
@@ -371,14 +378,19 @@ class Cell {
     }
     recordDependency(used) {
         if (!used.optimizedAwayp) {
+            //clg(`recdep ${this.name} usedby ${used.name}`);
             this.useds.add(used);
+            ast(this.useds.size>0);
             used.callerEnsure(this);
         }
     }
     callerEnsure(caller) {
         this.callers.add(caller);
     }
-
+    callerDrop(caller) {
+        //clg(`dropping!! caller ${caller.name} of ${this.name}`);
+        this.callers.delete(caller);
+    }
 }
 
 function mdSlotValueStore( me, slotName, value) {
@@ -417,4 +429,7 @@ function obsDbg (name, me, newv, priorv, c) {
 module.exports.Cell = Cell;
 module.exports.cIe = cIe;
 module.exports.cF = cF;
+module.exports.cFi = cFi;
+module.exports.cI = cI;
 module.exports.obsDbg = obsDbg;
+module.exports.kValid = kValid;

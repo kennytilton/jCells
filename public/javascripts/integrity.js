@@ -5,6 +5,10 @@
 var Q = require('./util/queue');
 var H = require('./cHeader');
 
+function clg() {
+    console.log(Array.from(arguments).join(","));
+}
+
 var gWithinIntegrity = false;
 var dpLogp = false;
 
@@ -97,8 +101,10 @@ function withIntegrity (queue, deferInfo, action) {
         gWithinIntegrity = true;
         H.deferChanges = false;
         try {
-            if (!C.pulse || queue == qChange) {
-                H.dataPulseNext('cwi');
+            //clg(`winteg gpulse() ${H.gpulse()}`);
+            if (!H.gpulse() || queue == qChange) {
+                let wtf = H.dataPulseNext('cwi');
+                //clg(`winteg ${wtf} gpulse() inced ${H.gpulse()}`);
             }
             let result = action(queue, deferInfo);
             finBiz(qNotify);
