@@ -33,13 +33,18 @@ const kUncurrent = Symbol("uncurrent");
 const kValid = Symbol("valid");
 const kNascent = Symbol("nascent");
 
+// lazy options
+const kOnceAsked = Symbol("lazy-once-asked");
+const kUntilAsked = Symbol("lazy-until-asked");
+const kAlways =Symbol("lazy-always");
+
 // --- Cells ----------------------
 
 class Cell {
     constructor(value, formula, inputp, ephemeralp, observer) {
-        this.pulse = 0;
-        this.pulseLastChanged = 0;
-        this.pulseObserved = 0;
+        this.pulse = -1;
+        this.pulseLastChanged = -1;
+        this.pulseObserved = -1;
         this.lazy = false; // not a predicate (can hold, inter alia, :until-asked)
         this.callers = new Set();
         this.useds = new Set(); // formulas only
@@ -94,7 +99,9 @@ class Cell {
         return this;
     }
     valueChangedp (newv,oldv) {
-        (this.unchangedIf || this.unChangedTest)(newv, oldv);
+        let uct = (this.unchangedIf || this.unchangedTest);
+        ast(uct, 'unchanged test required');
+        return !uct(newv, oldv);
     }
     currentp() {
         //clg(`currentp this pulse ${this.pulse} vs pulse ${H.gpulse()}`);
@@ -169,14 +176,15 @@ class Cell {
     }
 
     slotValueSet(newv) {
-        let vPrior = this.pv
-            , rv = this.pv = newv;
-
-        this.propagate(vPrior, this.callers);
-
-        if (this.ephemeralp)
-            this.pv = null;
-        return rv;
+        if (H.deferChanges) {
+            throw `Assign to ${this.name} must be deferred by wrapping it in WITH-INTEGRITY`;
+        } else if (find(this.lazy, [kOnceAsked, kAlways, true])) {
+            this.valueAssume(newv, null);
+        } else {
+            I.withChg(this.name, ()=>{
+                this.valueAssume( newv, null);
+            })
+        }
     }
 
     propagate(vPrior, callers) {
@@ -270,12 +278,14 @@ class Cell {
                 this.calcNSet('c-awaken');
             }
         } else {
+            clg('awk pulses', H.gpulse(),this.pulseObserved);
             if (H.gpulse() > this.pulseObserved) {
                 // apparently double calls have occurred
                 if (this.md) {
                     this.md[this.name] = this.pv;
                 }
-                this.observe(null);
+                clg('awakenin obs!!!',this.name);
+                this.observe(undefined,'awaken');
                 this.ephemeralReset();
             }
         }
@@ -305,28 +315,30 @@ class Cell {
         let self = this;
         H.withoutCDependency(function () {
            let priorValue = self.pv
-                , priorState = self.valueState;
+                , priorState = self.valueState();
             self.pv = newValue;
             self.state = 'awake';
             if (self.md && !self.synapticp) {
                 mdSlotValueStore( self.md, self.name, newValue);
             }
             self.pulseUpdate('sv-assume');
+            clg('priorstate', priorState.toString(),propCode);
             if (propCode=='propagate'
-                || ['valid','uncurrent'].indexOf(priorState) == -1
-                || self.valueChanged( newValue, priorValue)) {
-                let optimize = self.rule? self.optimize:null;
+                || [kValid,kUncurrent].indexOf(priorState) == -1
+                || self.valueChangedp( newValue, priorValue)) {
+                let optimize = self.rule ? self.optimize : null;
                 if (optimize == 'when-value-t') {
                     if (self.pv) {
                         self.unlinkFromUsed(optimize);
                     }
                 } else if (optimize) {
-                    self.optimizeAwayMaybe( priorValue);
+                    self.optimizeAwayMaybe(priorValue);
                 }
-            }
-            if (!(propCode=='no-propagate'
+
+                if (!(propCode == 'no-propagate'
                     || self.optimizedAway)) {
-                self.propagate(priorValue, self.callers);
+                    self.propagate(priorValue, self.callers);
+                }
             }
         });
         return newValue;
@@ -344,7 +356,12 @@ class Cell {
         }
     }
     observe( vPrior, tag) {
-        clg(`OBS(${tag}: ${this.name} now ${this.pv} (was ${vPrior.toString()}`);
+        clg('observe entry', vPrior, tag, this.observer);
+        if (this.observer) {
+            this.observer(this.name, this.md, this.pv, vPrior, this);
+        }
+/*        clg(`OBS(${tag}: ${this.name} now ${this.pv}
+         (was ${vPrior? vPrior.toString():''})`);*/
     }
     optimizeAwayMaybe(vPrior) {
         if (this.rule
@@ -413,9 +430,10 @@ function cFi(formula) {
      */
     return new Cell(null, formula, true, false, null);
 }
-function cI(value) {
+function cI(value, options) {
     // standard input cell
-    return new Cell(value, null, true, false, null);
+    return Object.assign(new Cell(value, null, true, false, null)
+        , options);
 }
 
 function cIe(value) {
