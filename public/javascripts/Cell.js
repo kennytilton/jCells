@@ -315,7 +315,7 @@ class Cell {
 
     valueAssume( newValue, propCode) {
         let self = this;
-        H.withoutCDependency(function () {
+        H.withoutCDependency(()=>{
            let priorValue = self.pv
                 , priorState = self.valueState();
             self.pv = newValue;
@@ -366,18 +366,18 @@ class Cell {
     }
     optimizeAwayMaybe(vPrior) {
         if (this.rule
-            && !this.useds.size
-            && this.optimize
-            && !this.optimizedAwayp()
-            && this.validp()
-            && !this.synapticp
-            && !this.inputp) {
+                && !this.useds.size
+                && this.optimize
+                && !this.optimizedAwayp()
+                && this.validp()
+                && !this.synapticp
+                && !this.inputp) {
             //clg(`opti-away!!! ${this.name}`);
-            this.state = kOptimizedAwayp; // uhoh
+            this.state = kOptimizedAwayp;
             this.observe( vPrior, 'optimized-away');
             if (this.md) {
                 this.mdCellFlush();
-                // uhoh: install value as constant
+                // todo install value as constant
             }
             for (let caller of this.callers.values()) {
                 this.callerDrop(caller);
@@ -391,8 +391,7 @@ class Cell {
         this.unlinkFromUsed('quiesce');
     }
     mdCellFlush() {
-        // uhoh
-        // move cells from md.cz to md.czFlushed
+        // todo move cells from md.cz to md.czFlushed
     }
     recordDependency(used) {
         if (!used.optimizedAwayp()) {

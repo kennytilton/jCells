@@ -3,6 +3,11 @@ C = require('../Cell');
 
 //@formatter:off
 
+function find(x,y) {
+    if (y.indexOf(x) != -1) {
+        return x;
+    }
+}
 function clg() {
     console.log(Array.from(arguments).join(","));
 }
@@ -92,8 +97,6 @@ deftest( 't-formula-2', ()=>{
     izz(() => {return callerct(d) == 0});
 });
 
-
-
 deftest( 't-in-reset', ()=>{
     let yowza = 0
         , obsct = 0
@@ -122,7 +125,7 @@ deftest('t-formula-22', ()=>{
    let b = C.cI(2,{'name' : 'bb'})
     , cct = 0
     , dct = 0
-    , c = C.cF(()=>{
+    , c = C.cF(c=>{
         ++cct;
         return b.v + 40;
     }, {'name':'cc'})
@@ -146,11 +149,36 @@ deftest('t-formula-22', ()=>{
 
 function cmatch( s, ns) {
     let sn = [];
+    if (ns.length != s.size) {
+        clg('len nope');
+        return false;
+    }
     for (let c of s)
-        sn.push(c.name);
-    clg(`cmatch actual=${sn} expected=${ns}`);
+        if (!find(c.name, ns)) {
+            clg('nope', c.name, ns.length);
+            return false;
+        }
+
+    // var difference = new Set([...s].filter(c => !set2.has(x)));
+    ns.forEach((n,i)=> {
+        found = false;
+        for (let c of s) {
+            if (c.name==n) {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            clg('sn nope '+ n);
+            return false;
+        }
+    });
+    //   if (!s)
     return true;
 }
+
+
 deftest( 'pentagram', ()=>{
    let run = {}
    , obs = {}
@@ -194,7 +222,11 @@ deftest( 'pentagram', ()=>{
     izz(() => {return ee.v == 420071});
     izz(() => {return aa.useds.size == 0});
 
-    izz(() => {return cmatch(bb.useds,['aa'])});
+    izz(() => {
+        diag = bb.useds.size;
+        //console.log(bb.useds.keys());
+        return cmatch(bb.useds,['aa'])});
+
     izz(() => {return cmatch(bb.callers,['dd','ee'])});
 
     izz(() => {return cmatch(cc.useds,['aa'])});
@@ -224,7 +256,6 @@ deftest('opti-away',()=>{
     aa.awaken();
     izz(()=>{
         diag='aaa';//aa.v;
-        console.log('aa='+aa.v.toString());
         return aa.v==42;
     });
     izz(()=>{
@@ -245,9 +276,7 @@ function unchangeHack(n,p) {
 deftest('unchanged',()=>{
     let ob = 0
     , b = C.cI(2, {'name':'bb'
-                    , 'observer' : ()=>{
-                        clg('obsing');
-                        ++ob}
+                    , 'observer' : ()=>{ ++ob}
                     , 'unchangedIf': unchangeHack})
     , cct = 0
     , c = C.cF(()=>{
@@ -257,7 +286,6 @@ deftest('unchanged',()=>{
     b.awaken();
     ast(c.v==42);
     ast(b.v==2);
-    clg('ob='+ob);
     ast(ob==1);
     ast(cct==1);
     b.v = 4;
