@@ -18,6 +18,9 @@ const qClient = new Q.ArrayQueue();
 const qEphemReset = new Q.ArrayQueue();
 const qChange = new Q.ArrayQueue();
 
+function ufbAdd( q, task) {
+    q.push( task);
+}
 function qDo (q) {
     let taskInfo = q.shift();
     if (taskInfo) {
@@ -122,4 +125,5 @@ function withChg(id, fn) {
 
 module.exports.withIntegrity = withIntegrity;
 module.exports.withChg = withChg;
+module.exports.qNotify = qNotify;
 module.exports.qEphemReset = qEphemReset;

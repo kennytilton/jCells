@@ -32,6 +32,7 @@ const kUnbound = Symbol("unbound");
 const kUncurrent = Symbol("uncurrent");
 const kValid = Symbol("valid");
 const kNascent = Symbol("nascent");
+const kOptimizedAwayp = Symbol("optimized-away");
 
 // lazy options
 const kOnceAsked = Symbol("lazy-once-asked");
@@ -51,7 +52,6 @@ class Cell {
         this.ephemeralp = ephemeralp;
         this.inputp = inputp;
         this.observer = observer;
-        this.optimizedAwayp = false;
         this.optimize = !inputp;
         this.slotOwning = false; // uhoh
         this.unchangedTest = function(a,b) { return a==b;};
@@ -83,6 +83,7 @@ class Cell {
         }
     }
 
+    optimizedAwayp() {return this.state==kOptimizedAwayp;}
     unboundp() {return this.pv==kUnbound;}
     uncurrentp() {return this.pv==kUncurrent;}
     validp() {return !(this.unboundp() || this.uncurrentp());}
@@ -108,7 +109,7 @@ class Cell {
         return this.pulse >= H.gpulse();
     }
     pulseUpdate(key='anon') {
-        if (!this.optimizedAwayp) {
+        if (!this.optimizedAwayp()) {
             ast(H.gpulse() >= this.pulse);
             this.pulse = H.gpulse();
         }
@@ -220,14 +221,15 @@ class Cell {
     }
     propagateToCallers(callers) {
         if (callers.size) {
-            I.withIntegrity(qNotify, c, ()=> {
-                H.causation.push(this); // this was (kinda) outside withIntegrity
+            let c = this;
+            I.withIntegrity(I.qNotify, c, ()=> {
+                H.causation.push(c); // this was (kinda) outside withIntegrity
                 try {
                     for (let caller of callers.values()) {
                         if (!(caller.state == 'quiesced'
                             || caller.currentp()
-                            || find(caller.lazy, [true, 'always','once-asked'])
-                            || !find(this, caller.useds))) {
+                            || find(caller.lazy, [true, kAlways,kOnceAsked])
+                            || !caller.useds.has(c))) {
                             caller.calcNSet('propagate');
                         }
                     }
@@ -241,7 +243,7 @@ class Cell {
     calcNSet(dbgId, dbgData) {
         //  Calculate, link, record, and propagate.
         let rawValue = this.calcNLink();
-        if (!this.optimizedAwayp) {
+        if (!this.optimizedAwayp()) {
             /*
             this check for optimized-away? arose because a rule using without-c-dependency
             can be re-entered unnoticed since that clears *call-stack*. If re-entered, a subsequent
@@ -278,13 +280,13 @@ class Cell {
                 this.calcNSet('c-awaken');
             }
         } else {
-            clg('awk pulses', H.gpulse(),this.pulseObserved);
+            //clg('awk pulses', H.gpulse(),this.pulseObserved);
             if (H.gpulse() > this.pulseObserved) {
                 // apparently double calls have occurred
                 if (this.md) {
                     this.md[this.name] = this.pv;
                 }
-                clg('awakenin obs!!!',this.name);
+                //clg('awakenin obs!!!',this.name);
                 this.observe(undefined,'awaken');
                 this.ephemeralReset();
             }
@@ -322,7 +324,7 @@ class Cell {
                 mdSlotValueStore( self.md, self.name, newValue);
             }
             self.pulseUpdate('sv-assume');
-            clg('priorstate', priorState.toString(),propCode);
+            //clg('priorstate', priorState.toString(),propCode);
             if (propCode=='propagate'
                 || [kValid,kUncurrent].indexOf(priorState) == -1
                 || self.valueChangedp( newValue, priorValue)) {
@@ -345,7 +347,7 @@ class Cell {
     }
     unlinkFromUsed(why) {
         for (let used of this.useds.values()) {
-            clg(`${this.name} unlinks fromused dueto ${why}`);
+            //clg(`${this.name} unlinks fromused dueto ${why}`);
             used.callerDrop(this);
         }
         this.useds.clear();
@@ -356,23 +358,22 @@ class Cell {
         }
     }
     observe( vPrior, tag) {
-        clg('observe entry', vPrior, tag, this.observer);
+        console.log('observe entry', vPrior);
         if (this.observer) {
+            console.log('observer', this.observer.toString());
             this.observer(this.name, this.md, this.pv, vPrior, this);
         }
-/*        clg(`OBS(${tag}: ${this.name} now ${this.pv}
-         (was ${vPrior? vPrior.toString():''})`);*/
     }
     optimizeAwayMaybe(vPrior) {
         if (this.rule
             && !this.useds.size
             && this.optimize
-            && !this.optimizedAwayp
+            && !this.optimizedAwayp()
             && this.validp()
             && !this.synapticp
             && !this.inputp) {
-            clg(`opti-away!!! ${this.name}`);
-            this.state = 'optimized-away'; // uhoh
+            //clg(`opti-away!!! ${this.name}`);
+            this.state = kOptimizedAwayp; // uhoh
             this.observe( vPrior, 'optimized-away');
             if (this.md) {
                 this.mdCellFlush();
@@ -394,7 +395,7 @@ class Cell {
         // move cells from md.cz to md.czFlushed
     }
     recordDependency(used) {
-        if (!used.optimizedAwayp) {
+        if (!used.optimizedAwayp()) {
             //clg(`recdep ${this.name} usedby ${used.name}`);
             this.useds.add(used);
             ast(this.useds.size>0);
@@ -417,9 +418,10 @@ function mdSlotValueStore( me, slotName, value) {
 
 // --- some handy cell factories -------------------
 
-function cF(formula) {
+function cF(formula, options) {
     // make a conventional formula cell
-    return new Cell(null, formula, false, false, null);
+    return Object.assign( new Cell(null, formula, false, false, null)
+        , options);
 }
 
 function cFi(formula) {
