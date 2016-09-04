@@ -57,9 +57,10 @@ function finBiz (q) {
 }
 
 function withoutIntegrity (fn) {
-    let wi = gWithinIntegrity
-        , dc = H.deferChanges
-        , cs = H.callstack;
+    let wi, dc, cs;
+    wi = gWithinIntegrity;
+    dc = H.deferChanges;
+    cs = H.callstack;
 
     try {
         gWithinIntegrity = false;
@@ -104,10 +105,8 @@ function withIntegrity (queue, deferInfo, action) {
         gWithinIntegrity = true;
         H.deferChanges = false;
         try {
-            //clg(`winteg gpulse() ${H.gpulse()}`);
-            if (!H.gpulse() || queue == qChange) {
-                let wtf = H.dataPulseNext('cwi');
-                //clg(`winteg ${wtf} gpulse() inced ${H.gpulse()}`);
+            if ((!H.gpulse()) || queue == qChange) {
+                H.dataPulseNext('cwi');
             }
             let result = action(queue, deferInfo);
             finBiz(qNotify);

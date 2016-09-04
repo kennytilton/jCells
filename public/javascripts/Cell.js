@@ -358,9 +358,9 @@ class Cell {
         }
     }
     observe( vPrior, tag) {
-        console.log('observe entry', vPrior);
+        //console.log('observe entry', vPrior);
         if (this.observer) {
-            console.log('observer', this.observer.toString());
+            //console.log('observer', this.observer.toString());
             this.observer(this.name, this.md, this.pv, vPrior, this);
         }
     }
@@ -453,3 +453,4 @@ module.exports.cFi = cFi;
 module.exports.cI = cI;
 module.exports.obsDbg = obsDbg;
 module.exports.kValid = kValid;
+module.exports.kUnbound = kUnbound;
