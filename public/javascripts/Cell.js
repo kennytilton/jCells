@@ -64,10 +64,9 @@ class Cell {
 
             Object.defineProperty(this
                 , 'v', {
-                    enumerable: true,
-                    get: function () {
-                        return this.slotValue();
-                    }
+                    enumerable: true
+                    , get: this.slotValue
+                    , set: this.slotValueSet
                 });
         } else {
             this.pv = value;
@@ -76,8 +75,8 @@ class Cell {
             Object.defineProperty(this
                 , 'v', {
                     enumerable: true
-                    , set: this.slotValueSet
                     , get: this.slotValue
+                    , set: this.slotValueSet
 
                 });
         }
@@ -423,7 +422,7 @@ function cF(formula, options) {
         , options);
 }
 
-function cFi(formula) {
+function cFI(formula) {
     /*
      make a cell whose formula runs once for
      its initial value but then is set procedurally
@@ -448,7 +447,7 @@ function obsDbg (name, me, newv, priorv, c) {
 module.exports.Cell = Cell;
 module.exports.cIe = cIe;
 module.exports.cF = cF;
-module.exports.cFi = cFi;
+module.exports.cFI = cFI;
 module.exports.cI = cI;
 module.exports.obsDbg = obsDbg;
 module.exports.kValid = kValid;

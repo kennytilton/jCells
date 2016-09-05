@@ -299,11 +299,42 @@ deftest('unchanged',()=>{
     ast(b.v==5);
     ast(ob==2);
     ast(cct==2);
-})
+});
+
+//@formatter:off
+
+deftest('c?n',x=> {
+    let a = C.cI(42)
+        , b = C.cFI(c=> {
+        return a.v / 2;
+    })
+        , c = C.cF(x=> {
+        return b.v + 1
+    });
+    izz(x=> {
+        diag = b.v;
+        return b.v == 21
+    });
+    izz(x=> {
+        return c.v == 22
+    });
+
+    b.v = 42;
+
+    izz(x=> {
+        diag=b.v;
+        return b.v == 42
+    });
+    izz(x=> {
+        return c.v == 43
+    });
+});
+
 
 /*testRun('test-cI');
 testRun('t-formula');
 testRun('t-formula-2');
 testRun('t-in-reset');*/
 testRun('unchanged');
+testRun('c?n');
 testRunAll();
