@@ -443,6 +443,8 @@ function withoutCDependency(fn) {
             }
     };
 }
+// todo get consistent with all cMakers accepting options
+// todo validate options against, eg, ephmeralp
 
 function cF1(formula, options) {
     return Object.assign( new Cell(null

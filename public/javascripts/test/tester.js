@@ -21,6 +21,7 @@ function ast (test, msg) {
 
 var testName = '???';
 var diag = null;
+function setDiag(d) { diag = d? d.toString():'nada'}
 
 function izz(fn) {
     diag = null;
@@ -56,6 +57,7 @@ module.exports.clg = clg;
 module.exports.ast = ast;
 module.exports.find=find;
 module.exports.diag = diag;
+module.exports.setDiag = setDiag;
 module.exports.izz = izz;
 module.exports.deftest = deftest;
 module.exports.testRun = testRun;

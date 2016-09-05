@@ -196,21 +196,7 @@ T.deftest('c?once',x=>{
         return b.v==21});
 });
 
-T.deftest('ephemeral', x=> {
-    let b = C.cIe(null)
-        , cn = 0
-        , c = C.cF(c=> {
-        return 'Hi ' + (b.v || '') + ' ' + (++cn)
-    });
-    T.ast(c.v == 'Hi  1');
-    b.v='Mom';
-    T.ast(b.v==null);
-    T.ast(c.v=='Hi Mom 2');
-    b.v='Mom';
-    T.ast(b.v==null);
-    T.ast(c.v=='Hi Mom 3');
 
-});
 
 
 

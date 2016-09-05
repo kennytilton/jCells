@@ -1,5 +1,8 @@
 /**
  * Created by kenneth on 9/1/16.
+ *
+ * This is not a serious part of the project, more
+ * of a playground for checking out queue.js
  */
 
 
