@@ -342,10 +342,92 @@ deftest('c?once',x=>{
         return b.v==21});
 });
 
+deftest('ephemeral', x=> {
+    let b = C.cIe(null)
+        , cn = 0
+        , c = C.cF(c=> {
+        return 'Hi ' + (b.v || '') + ' ' + (++cn)
+    });
+    ast(c.v == 'Hi  1');
+    b.v='Mom';
+    ast(b.v==null);
+    ast(c.v=='Hi Mom 2');
+    b.v='Mom';
+    ast(b.v==null);
+    ast(c.v=='Hi Mom 3');
+
+});
+
+deftest('lazy-true',()=>{
+   let xo = 0
+       , a = C.cI(0)
+       , b = C.cF_(c=>{ ++xo;
+                        return a.v+40;}
+                        , {name:'c'});
+    izz(x=>{ diag=a.pv;
+        return b.pv == C.kUnbound;});
+    izz(x=>{ return xo==0;});
+    izz(x=>{ return b.v==40});
+    izz(x=>{ return xo==1;});
+    a.v==100;
+    izz(x=>{ return a.v=100});
+    izz(x=>{ return b.pv==40});
+    izz(x=>{ return xo==1;});
+    clg('confirm jit evic');
+    izz(x=>{ diag=b.v;
+        return b.v==140});
+    izz(x=>{ return xo==2;});
+});
+
+deftest('lazy-until',jj=>{
+    let xo=0
+        , xr = 0
+        , a = C.cI(0)
+        , x = C.c_F(c=>{
+            ++xr;
+            return a.v + 40;});
+    izz(c=>{ return x.pv==C.kUnbound});
+    izz(c=>{ return xr == 0});
+    izz(c=>{ return x.v == 40});
+    izz(c=>{ return xr == 1});
+    a.v = 2;
+    izz(c=>{ return x.pv == 42});
+    izz(c=>{ return x.v == 42});
+})
+
+deftest('opti-when',_=>{
+   let xo = 0
+       , xr = 0
+       , a = C.cI(0)
+       , x = C.cF(c=>{
+            ++xr;
+            let av = a.v;
+            return (av > 1)? av+40:null;}
+            , {optimize: C.kOptimizeWhenValued
+           });
+    ast(x.v==null);
+    ast(x.validp());
+    ast(x.useds.size==1);
+    ast(a.callers.size==1);
+    ast(!x.optimizedAwayp());
+    a.v = 2;
+    ast(a.v==2);
+    izz(_=>{ diag = x.v;
+        return x.v==42});
+    izz(_=>{return x.optimizedAwayp()});
+    a.v=3;
+    ast(a.v==3);
+    ast(x.v==42);
+    ast(x.useds.size==0);
+    ast(a.callers.size==0);
+    ast(x.optimizedAwayp());
+   });
+
+//deftest('opti')
 /*testRun('test-cI');
 testRun('t-formula');
 testRun('t-formula-2');
 testRun('t-in-reset');*/
-testRun('unchanged');
-testRun('c?n');
+testRun('opti-when');
+//testRun('c?n');
 testRunAll();

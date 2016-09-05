@@ -33,6 +33,7 @@ const kUncurrent = Symbol("uncurrent");
 const kValid = Symbol("valid");
 const kNascent = Symbol("nascent");
 const kOptimizedAwayp = Symbol("optimized-away");
+const kOptimizeWhenValued = Symbol("optimize-when-valued");
 
 // lazy options
 const kOnceAsked = Symbol("lazy-once-asked");
@@ -46,7 +47,7 @@ class Cell {
         this.pulse = -1;
         this.pulseLastChanged = -1;
         this.pulseObserved = -1;
-        this.lazy = false; // not a predicate (can hold, inter alia, :until-asked)
+        this.lazy = null; // not a predicate (can hold, inter alia, :until-asked)
         this.callers = new Set();
         this.useds = new Set(); // formulas only
         this.ephemeralp = ephemeralp;
@@ -115,16 +116,18 @@ class Cell {
     }
 
     ensureValueIsCurrent(tag, ensurer) {
-        //clg('evic entry');
+        //clg('evic entry ', this.name);
         if (H.gNotToBe) {
+            //clg('not2be');
             return (this.boundp && this.validp()) ? this.pv : null;
         } else if (this.currentp()) {
-            //clg('currentp');
+            //clg('currentp',this.pulse,H.gpulse());
             return this.pv;
         } else if (this.inputp
                     && this.validp()
-                    && !(this.rule && this.optimize == 'when-value'
+                    && !(this.rule && this.optimize == kOptimizeWhenValued
                         && !this.pv)) {
+            //clg('inputp', this.name);
             return this.pv;
         } else if (this.md && this.md.mDeadp()) {
             throw `evic: read of dead ${this.name} of ${this.md.name}`;
@@ -145,10 +148,12 @@ class Cell {
             if (recalc) {
                 if (!this.currentp()) {
                     // possible if a used's observer queried me
+                    //clg('calcnset!!', this.name);
                     this.calcNSet('evic', ensurer);
-                }
+                } //else clg('late currentp');
                 return this.pv;
             } else {
+                //clg('valid uninfluenced', this.name);
                 this.pulseUpdate('valid-uninfluence');
                 return this.pv;
             }
@@ -206,7 +211,7 @@ class Cell {
                 }
                 this.propagateToCallers( callers);
                 if (H.gpulse() > this.pulseObserved
-                    || find(this.lazy, ['once-asked','always',true])) {
+                    || find(this.lazy, [kOnceAsked, kAlways,true])) {
                     this.observe(vPrior,'propagate');
                 }
                 this.ephemeralReset();
@@ -225,10 +230,14 @@ class Cell {
                 H.causation.push(c); // this was (kinda) outside withIntegrity
                 try {
                     for (let caller of callers.values()) {
+                        //clg('caller lazy '+ caller.lazy.toString());
+                        //clg('caller pv '+ caller.pv.toString());
+                        //clg('caller pulse/pulse ', caller.pulse, H.gpulse());
                         if (!(caller.state == 'quiesced'
                             || caller.currentp()
                             || find(caller.lazy, [true, kAlways,kOnceAsked])
                             || !caller.useds.has(c))) {
+                            //clg('calcing eager '+caller.lazy);
                             caller.calcNSet('propagate');
                         }
                     }
@@ -300,13 +309,14 @@ class Cell {
              within finBiz we are sure all callers have been recalculated
              and all observers completed (which happens with recalc).
              */
+            let self = this;
             I.withIntegrity( I.qEphemReset, this, function () {
-                let me = rc.md;
+                let me = self.md;
                 if (me) {
                     throw "md fnyi";
                 } else {
                     //clg(`ephreset! ${this.name}`);
-                    this.pv = null;
+                    self.pv = null;
                 }
             });
         }
@@ -328,16 +338,17 @@ class Cell {
                 || [kValid,kUncurrent].indexOf(priorState) == -1
                 || self.valueChangedp( newValue, priorValue)) {
                 let optimize = self.rule ? self.optimize : null;
-                if (optimize == 'when-value-t') {
+                if (optimize == kOptimizeWhenValued) {
                     if (self.pv) {
-                        self.unlinkFromUsed(optimize);
+                        self.unlinkFromUsed('opti-when');
+                        this.optimizeAwayMaybe(priorValue);
                     }
                 } else if (optimize) {
                     self.optimizeAwayMaybe(priorValue);
                 }
 
                 if (!(propCode == 'no-propagate'
-                    || self.optimizedAway)) {
+                    || self.optimizedAwayp())) {
                     self.propagate(priorValue, self.callers);
                 }
             }
@@ -439,7 +450,18 @@ function cF1(formula, options) {
                                 , false, false, null)
         , options);
 }
-
+function cF_(formula, options) {
+    // standard input cell
+    return Object.assign(new Cell(null, formula, false, false, null)
+        , {lazy: true}
+        , options);
+}
+function c_F(formula, options) {
+    // standard input cell
+    return Object.assign(new Cell(null, formula, false, false, null)
+        , {lazy: kUntilAsked}
+        , options);
+}
 function cFI(formula) {
     /*
      make a cell whose formula runs once for
@@ -467,7 +489,10 @@ module.exports.cIe = cIe;
 module.exports.cF = cF;
 module.exports.cFI = cFI;
 module.exports.cF1 = cF1;
+module.exports.cF_ = cF_;
+module.exports.c_F = c_F;
 module.exports.cI = cI;
 module.exports.obsDbg = obsDbg;
 module.exports.kValid = kValid;
 module.exports.kUnbound = kUnbound;
+module.exports.kOptimizeWhenValued = kOptimizeWhenValued;
