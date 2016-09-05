@@ -31,6 +31,8 @@ function find(x,y) {
 const kUnbound = Symbol("unbound");
 const kUncurrent = Symbol("uncurrent");
 const kValid = Symbol("valid");
+const kAwake = Symbol("c-awake");
+
 const kNascent = Symbol("nascent");
 const kOptimizedAwayp = Symbol("optimized-away");
 const kOptimizeWhenValued = Symbol("optimize-when-valued");
@@ -62,25 +64,17 @@ class Cell {
             this.rule = formula;
             this.pv = kUnbound;
             this.state = H.kNascent;
-
-            Object.defineProperty(this
-                , 'v', {
-                    enumerable: true
-                    , get: this.slotValue
-                    , set: this.slotValueSet
-                });
         } else {
             this.pv = value;
             this.state = H.kValid;
-
-            Object.defineProperty(this
-                , 'v', {
-                    enumerable: true
-                    , get: this.slotValue
-                    , set: this.slotValueSet
-
-                });
         }
+        Object.defineProperty(this
+            , 'v', {
+                enumerable: true
+                , get: this.slotValue
+                , set: this.slotValueSet
+
+            });
     }
 
     optimizedAwayp() {return this.state==kOptimizedAwayp;}
@@ -163,7 +157,7 @@ class Cell {
     slotValue() {
         let rv = undefined
             , self = this;
-        //clg('cget depender in '+H.depender);
+        // clg('cget depender in '+H.depender);
         I.withIntegrity(null,null, function () {
             let vPrior = self.pv;
             rv = self.ensureValueIsCurrent( 'c-read', null);
@@ -311,13 +305,7 @@ class Cell {
              */
             let self = this;
             I.withIntegrity( I.qEphemReset, this, function () {
-                let me = self.md;
-                if (me) {
-                    throw "md fnyi";
-                } else {
-                    //clg(`ephreset! ${this.name}`);
-                    self.pv = null;
-                }
+                self.pv = null;
             });
         }
     }
@@ -421,8 +409,7 @@ class Cell {
 }
 
 function mdSlotValueStore( me, slotName, value) {
-    throw 'no model yet';
-    me[slotName] = value;
+    // me[slotName] = value; vestigial? todo clean up if so
 }
 
 // --- some handy cell factories -------------------
@@ -498,3 +485,7 @@ module.exports.obsDbg = obsDbg;
 module.exports.kValid = kValid;
 module.exports.kUnbound = kUnbound;
 module.exports.kOptimizeWhenValued = kOptimizeWhenValued;
+module.exports.kOnceAsked = kOnceAsked;
+module.exports.kUntilAsked = kUntilAsked;
+module.exports.kAlways = kAlways;
+module.exports.find = find;

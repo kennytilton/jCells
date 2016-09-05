@@ -233,6 +233,6 @@ T.deftest('opti-when',_=>{
 T.testRun('t-formula');
 T.testRun('t-formula-2');
 T.testRun('t-in-reset');*/
-T.testRun('opti-when');
+// T.testRun('opti-when');
 //T.testRun('c?n');
 T.testRunAll();

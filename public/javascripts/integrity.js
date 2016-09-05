@@ -49,7 +49,7 @@ function finBiz (q) {
             let work = q.shift();
             if (work) {
                 let [info, taskfn] = work;
-                dataPulseNext('change');
+                H.dataPulseNext('change');
                 taskfn('change', info);
                 finBiz(qNotify);
             } // else we fall out, business finished
@@ -125,4 +125,5 @@ function withChg(id, fn) {
 module.exports.withIntegrity = withIntegrity;
 module.exports.withChg = withChg;
 module.exports.qNotify = qNotify;
+module.exports.qAwaken = qAwaken;
 module.exports.qEphemReset = qEphemReset;
