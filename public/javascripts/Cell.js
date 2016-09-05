@@ -422,6 +422,24 @@ function cF(formula, options) {
         , options);
 }
 
+function withoutCDependency(fn) {
+    return c=>{ let sd = H.depender;
+            H.depender = null;
+            try {
+                return fn(c);
+            } finally {
+                H.depender = sd
+            }
+    };
+}
+
+function cF1(formula, options) {
+    return Object.assign( new Cell(null
+                                , withoutCDependency(formula)
+                                , false, false, null)
+        , options);
+}
+
 function cFI(formula) {
     /*
      make a cell whose formula runs once for
@@ -448,6 +466,7 @@ module.exports.Cell = Cell;
 module.exports.cIe = cIe;
 module.exports.cF = cF;
 module.exports.cFI = cFI;
+module.exports.cF1 = cF1;
 module.exports.cI = cI;
 module.exports.obsDbg = obsDbg;
 module.exports.kValid = kValid;

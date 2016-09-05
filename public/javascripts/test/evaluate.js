@@ -330,6 +330,17 @@ deftest('c?n',x=> {
     });
 });
 
+deftest('c?once',x=>{
+    let a = C.cI(42)
+        , b = C.cF1(c=>{ return a.v/2});
+
+    izz(x=>{ diag = 'whoa';
+        return b.v == 21});
+    a.v = 2;
+    izz(x=>{ return a.v==2});
+    izz(x=>{diag=b.v;
+        return b.v==21});
+});
 
 /*testRun('test-cI');
 testRun('t-formula');
