@@ -27,6 +27,7 @@ define(ArrayQueue.prototype, {
     emptyp: function emptyp() {
         return this.size==0;
     },
+
     push: function push(value) {
         this._items.push(value);
         return ++this.size;
@@ -163,6 +164,9 @@ var Stack = function() {
             , function(n) { return _elements.length=n; }
             , function () {
                 return _elements[_elements.length-1];
+            }
+            , function (e) {
+                return _elements.includes(e);
             }];
     })();
     this.push=functionSet[0];
@@ -170,6 +174,7 @@ var Stack = function() {
     this.getLength=functionSet[2];
     this.setLength=functionSet[3];
     this.peek=functionSet[4];
+    this.includes=functionSet[5];
     // initializing the stack with given arguments
     this.push.apply(this,arguments);
 };
@@ -185,6 +190,6 @@ var Stack = function() {
 
 */
 module.exports.Stack = Stack;
-
 module.exports.ArrayQueue = ArrayQueue;
+module.exports.ArrayQueue.wtf = ArrayQueue.wtf;
 module.exports.ListQueue = ListQueue;

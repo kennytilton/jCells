@@ -6,11 +6,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c15b221c-00ef-46c3-9347-32a0022a217b" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/public/javascripts/test/family.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/public/javascripts/Model.js" afterPath="$PROJECT_DIR$/public/javascripts/Model.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/public/javascripts/test/Model.js" afterPath="$PROJECT_DIR$/public/javascripts/test/Model.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/public/javascripts/test/basics.js" afterPath="$PROJECT_DIR$/public/javascripts/test/basics.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/public/javascripts/Cell.js" afterPath="$PROJECT_DIR$/public/javascripts/Cell.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/public/javascripts/util/queue.js" afterPath="$PROJECT_DIR$/public/javascripts/util/queue.js" />
     </list>
     <ignored path="jCells.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -48,8 +45,8 @@
       <file leaf-file-name="basics.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/public/javascripts/test/basics.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="792">
-              <caret line="245" column="18" selection-start-line="245" selection-start-column="18" selection-end-line="245" selection-end-column="18" />
+            <state relative-caret-position="770">
+              <caret line="276" column="0" selection-start-line="276" selection-start-column="0" selection-end-line="276" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -70,8 +67,18 @@
       <file leaf-file-name="Cell.js" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/public/javascripts/Cell.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="14476">
-              <caret line="660" column="41" selection-start-line="660" selection-start-column="41" selection-end-line="660" selection-end-column="41" />
+            <state relative-caret-position="376">
+              <caret line="412" column="61" selection-start-line="412" selection-start-column="61" selection-end-line="412" selection-end-column="61" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="queue.js" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/public/javascripts/util/queue.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-998">
+              <caret line="33" column="5" selection-start-line="33" selection-start-column="5" selection-end-line="33" selection-end-column="5" />
               <folding />
             </state>
           </provider>
@@ -115,7 +122,6 @@
         <option value="$PROJECT_DIR$/public/javascripts/cell.js" />
         <option value="$PROJECT_DIR$/public/javascripts/poconcept/helloworld.js" />
         <option value="$PROJECT_DIR$/public/javascripts/evaluate.js" />
-        <option value="$PROJECT_DIR$/public/javascripts/util/queue.js" />
         <option value="$PROJECT_DIR$/public/javascripts/poconcept/cell.js" />
         <option value="$PROJECT_DIR$/public/javascripts/cHeader.js" />
         <option value="$PROJECT_DIR$/public/javascripts/model.js" />
@@ -128,11 +134,12 @@
         <option value="$PROJECT_DIR$/public/javascripts/test/pentagramOfDeath.js" />
         <option value="$PROJECT_DIR$/public/javascripts/test/ephemerality.js" />
         <option value="$PROJECT_DIR$/public/javascripts/test/tester.js" />
-        <option value="$PROJECT_DIR$/public/javascripts/Cell.js" />
         <option value="$PROJECT_DIR$/public/javascripts/integrity.js" />
         <option value="$PROJECT_DIR$/public/javascripts/test/Model.js" />
         <option value="$PROJECT_DIR$/public/javascripts/test/family.js" />
         <option value="$PROJECT_DIR$/public/javascripts/Model.js" />
+        <option value="$PROJECT_DIR$/public/javascripts/util/queue.js" />
+        <option value="$PROJECT_DIR$/public/javascripts/Cell.js" />
         <option value="$PROJECT_DIR$/public/javascripts/test/basics.js" />
       </list>
     </option>
@@ -404,7 +411,7 @@
       <workItem from="1472992872561" duration="601000" />
       <workItem from="1472993496325" duration="50769000" />
       <workItem from="1473116389446" duration="13820000" />
-      <workItem from="1473176941649" duration="538000" />
+      <workItem from="1473176941649" duration="4765000" />
     </task>
     <task id="LOCAL-00001" summary="cmatch honest&#10;">
       <created>1473033571183</created>
@@ -413,11 +420,18 @@
       <option name="project" value="LOCAL" />
       <updated>1473033571183</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="cmatch honest&#10;">
+      <created>1473183193652</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1473183193652</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="221538000" />
+    <option name="totallyTimeSpent" value="225765000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -547,6 +561,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="616">
           <caret line="28" column="6" selection-start-line="28" selection-start-column="6" selection-end-line="28" selection-end-column="6" />
+          <folding />
         </state>
       </provider>
     </entry>
@@ -567,6 +582,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="3477">
           <caret line="183" column="0" selection-start-line="183" selection-start-column="0" selection-end-line="183" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>
@@ -579,6 +595,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="3477">
           <caret line="185" column="2" selection-start-line="185" selection-start-column="2" selection-end-line="185" selection-end-column="2" />
+          <folding />
         </state>
       </provider>
     </entry>
@@ -598,13 +615,6 @@
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/public/javascripts/evaluate.js" />
-    <entry file="file://$PROJECT_DIR$/public/javascripts/util/queue.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="616">
-          <caret line="28" column="6" selection-start-line="28" selection-start-column="6" selection-end-line="28" selection-end-column="6" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$APPLICATION_CONFIG_DIR$/scratches/scratch.es6">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
@@ -616,6 +626,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="88">
           <caret line="4" column="16" selection-start-line="0" selection-start-column="0" selection-end-line="164" selection-end-column="3" />
+          <folding />
         </state>
       </provider>
     </entry>
@@ -625,6 +636,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="390">
           <caret line="135" column="4" selection-start-line="135" selection-start-column="4" selection-end-line="135" selection-end-column="4" />
+          <folding />
         </state>
       </provider>
     </entry>
@@ -633,6 +645,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="770">
           <caret line="51" column="12" selection-start-line="51" selection-start-column="12" selection-end-line="51" selection-end-column="12" />
+          <folding />
         </state>
       </provider>
     </entry>
@@ -640,6 +653,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>
@@ -647,6 +661,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="22">
           <caret line="4" column="0" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>
@@ -654,6 +669,9 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="44">
           <caret line="4" column="4" selection-start-line="4" selection-start-column="4" selection-end-line="4" selection-end-column="4" />
+          <folding>
+            <element signature="e#0#42#0" expanded="false" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -662,6 +680,9 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="732">
           <caret line="114" column="23" selection-start-line="114" selection-start-column="23" selection-end-line="114" selection-end-column="23" />
+          <folding>
+            <element signature="n#!!doc" expanded="false" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -685,14 +706,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/public/javascripts/Cell.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="14476">
-          <caret line="660" column="41" selection-start-line="660" selection-start-column="41" selection-end-line="660" selection-end-column="41" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/public/javascripts/test/Model.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="682">
@@ -703,10 +716,26 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/public/javascripts/util/queue.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-998">
+          <caret line="33" column="5" selection-start-line="33" selection-start-column="5" selection-end-line="33" selection-end-column="5" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/public/javascripts/Cell.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="376">
+          <caret line="412" column="61" selection-start-line="412" selection-start-column="61" selection-end-line="412" selection-end-column="61" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/public/javascripts/test/basics.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="792">
-          <caret line="245" column="18" selection-start-line="245" selection-start-column="18" selection-end-line="245" selection-end-column="18" />
+        <state relative-caret-position="770">
+          <caret line="276" column="0" selection-start-line="276" selection-start-column="0" selection-end-line="276" selection-end-column="0" />
           <folding />
         </state>
       </provider>

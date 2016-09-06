@@ -409,8 +409,13 @@ class Cell {
 
     calcNSet(dbgId, dbgData) {
         //  Calculate, link, record, and propagate.
+        if (callStack.includes(this)) {
+            clg(`cyclic dependency calculating ${this.name}`);
+            throw 'cyclic dependency detected. see console for deets';
+        }
         let rawValue = this.calcNLink();
         //T.clg('rawval', rawValue);
+
         if (!this.optimizedAwayp()) {
             /*
             this check for optimized-away? arose because a rule using without-c-dependency
