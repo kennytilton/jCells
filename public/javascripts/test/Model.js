@@ -20,18 +20,18 @@ T.deftest('bbsteps-1',x=>{
 });
 T.deftest('bbsteps',x=>{
     let bb = new M.Model(null, 'baby'
-        , {action: C.cIe()
-            , locus: C.cF(c=>{
-                switch (c.md.action) {
-                    case 'leave': return 'away';
-                        break;
-                    case 'return': return 'home';
-                        break;
-                    default: return 'missing';
-                }}, {observer: (slot,me,newv)=>{
-                if (newv) {
-                    T.clg(`Honey, Im ${newv}`);
-                }}})});
+                , {action: C.cIe()
+                , locus: C.cF(c=>{
+                    switch (c.md.action) {
+                        case 'leave': return 'away';
+                            break;
+                        case 'return': return 'home';
+                            break;
+                        default: return 'missing';
+                    }}, {observer: (slot,me,newv)=>{
+                    if (newv) {
+                        T.clg(`Honey, Im ${newv}`);
+                    }}})});
     T.izz(m=>{ T.setDiag(bb.locus);
         return bb.locus=='missing'});
     bb.action = 'return';
@@ -43,4 +43,4 @@ T.deftest('bbsteps',x=>{
 });
 
 
-T.testRun('bbsteps');
+T.testRunAll('bbsteps');

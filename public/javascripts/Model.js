@@ -61,7 +61,7 @@ class Model {
             if (!icells.hasOwnProperty(slot))
                 continue;
 
-            console.log(slot + " -> " + icells[slot]);
+            //console.log(slot + " -> " + icells[slot]);
             let value = icells[slot];
 
             if (value instanceof C.Cell) {

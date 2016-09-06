@@ -226,6 +226,15 @@ T.deftest('opti-when',_=>{
     T.ast(x.optimizedAwayp());
    });
 
+T.deftest('cycle',x=>{
+    let a = C.cF(c=>{
+                return b.v/2;})
+        , b = C.cF(c=> {
+                return a.v + 2;
+    });
+    T.izz(c=>{ return b.v==42});
+    });
+
 //T.deftest('opti')
 //T.testRun('test-cI');
 // T.testRun('t-formula');
@@ -233,4 +242,5 @@ T.deftest('opti-when',_=>{
 // T.testRun('t-in-reset');
 // T.testRun('opti-when');
 //T.testRun('c?n');
-T.testRunAll();
+T.testRun('cycle');
+// T.testRunAll();
