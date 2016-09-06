@@ -1,3 +1,4 @@
+var Q = require('../util/queue');
 C = require('../Cell');
 T = require('./tester');
 
@@ -226,14 +227,43 @@ T.deftest('opti-when',_=>{
     T.ast(x.optimizedAwayp());
    });
 
-T.deftest('cycle',x=>{
+T.deftest('cycle-direct',x=>{
     let a = C.cF(c=>{
-                return b.v/2;})
+        return b.v/2;}, {name:'aazzzz'})
         , b = C.cF(c=> {
-                return a.v + 2;
-    });
-    T.izz(c=>{ return b.v==42});
-    });
+        return a.v + 2;
+    }, {name:'bb'});
+
+    T.izz(jj=> {
+        try {
+            T.clg('hunh?', a.v, b.v);
+            return false;
+        } catch (e) {
+            T.clg(e);
+            return true;
+        }});
+});
+
+T.deftest('cycle-indirect',x=>{
+    let a = C.cF(c=>{
+            return b.v/2;
+        }, {name:'aa'})
+        , b = C.cF(c=> {
+            return c.v + 2;
+        }, {name:'bb'})
+        , c = C.cF(c=> {
+            return a.v + 2;
+        }, {name:'cc'});
+
+    T.izz(jj=> {
+        try {
+            T.clg('hunh?', a.v, b.v, c.v);
+            return false;
+        } catch (e) {
+            T.clg(e);
+            return true;
+        }});
+});
 
 //T.deftest('opti')
 //T.testRun('test-cI');
@@ -242,5 +272,6 @@ T.deftest('cycle',x=>{
 // T.testRun('t-in-reset');
 // T.testRun('opti-when');
 //T.testRun('c?n');
-T.testRun('cycle');
-// T.testRunAll();
+
+T.testRun('cycle-direct');
+T.testRunAll();
