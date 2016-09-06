@@ -2,9 +2,7 @@
  * Created by Kenneth on 9/5/2016.
  */
 
-var H = require('../cHeader')
-    , I = require('../integrity')
-    , C = require('../Cell')
+var C = require('../Cell')
     , M = require('../Model');
 
 T = require('./tester');

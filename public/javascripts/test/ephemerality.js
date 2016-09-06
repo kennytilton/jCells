@@ -1,4 +1,4 @@
-H = require('../cHeader');
+
 C = require('../Cell');
 T = require('./tester');
 
@@ -49,3 +49,4 @@ T.deftest('ephormula',x=>{
 
 T.testRun('ephormula');
 // T.testRun('ephemeral');
+T.testRunAll();

@@ -1,4 +1,3 @@
-H = require('../cHeader');
 C = require('../Cell');
 T = require('./tester');
 
@@ -13,6 +12,7 @@ T.deftest('test-cI', () => {
     T.izz(() => {return !c.callers.size});
     T.izz(() => {return c.inputp});
     T.izz(() => {return c.validp()});
+    T.izz(() => {return c.pv==42});
     T.izz(() => {return c.v==42});
 });
 
@@ -26,7 +26,8 @@ T.deftest('t-formula', ()=>{
     T.izz(() => {return T.usedct(c)==0});
     T.izz(() => {return !c.validp()});
 
-    T.izz(() => {return c.v == 42});
+    T.izz(() => {T.setDiag(c.v);
+        return c.v == 42});
 
     T.izz(() => {return T.callerct(c)==0});
     T.izz(() => {return T.usedct(c)==0});
@@ -97,9 +98,10 @@ T.deftest('t-formula-22', ()=>{
     T.izz(()=> {return dct==1});
     T.izz(()=> {return cct==1});
     b.v=3;
-    T.izz(()=> {return d.v==46});
-    T.izz(()=> {return c.v==43});
     T.izz(()=> {return b.v==3});
+    T.izz(()=> {T.setDiag(c.v);
+                return c.v==43});
+    T.izz(()=> {return d.v==46});
     T.izz(()=> {return dct==2});
     T.izz(()=> {return cct==2});
 });
@@ -187,18 +189,14 @@ T.deftest('c?n',x=> {
 T.deftest('c?once',x=>{
     let a = C.cI(42)
         , b = C.cF1(c=>{ return a.v/2});
-
-    T.izz(x=>{ diag = 'whoa';
+    T.izz(x=>{return a.v==42});
+    T.izz(x=>{ T.setDiag(b.v);
         return b.v == 21});
     a.v = 2;
     T.izz(x=>{ return a.v==2});
     T.izz(x=>{diag=b.v;
         return b.v==21});
 });
-
-
-
-
 
 T.deftest('opti-when',_=>{
    let xo = 0
@@ -229,10 +227,10 @@ T.deftest('opti-when',_=>{
    });
 
 //T.deftest('opti')
-/*T.testRun('test-cI');
-T.testRun('t-formula');
-T.testRun('t-formula-2');
-T.testRun('t-in-reset');*/
+//T.testRun('test-cI');
+// T.testRun('t-formula');
+//T.testRun('c?once');
+// T.testRun('t-in-reset');
 // T.testRun('opti-when');
 //T.testRun('c?n');
 T.testRunAll();

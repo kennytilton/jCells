@@ -1,4 +1,3 @@
-H = require('../cHeader');
 C = require('../Cell');
 T = require('./tester');
 

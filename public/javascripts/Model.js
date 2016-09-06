@@ -3,9 +3,7 @@
  */
 
 
-var H = require('./cHeader')
-    , I = require('./integrity')
-    , C = require('./Cell');
+var C = require('./Cell');
 
 //@formatter:off
 
@@ -90,7 +88,7 @@ class Model {
         if (this.awakenOnInitp) {
             this.awaken();
         } else {
-            I.withIntegrity(I.qAwaken, this, x=> {
+            C.withIntegrity(C.qAwaken, this, x=> {
                 this.awaken();
             })
         }

@@ -2,7 +2,6 @@
  * Created by Kenneth on 9/4/2016.
  */
 
-H = require('../cHeader');
 C = require('../Cell');
 T = require('./tester');
 

@@ -2,8 +2,7 @@
  * Created by Kenneth on 9/5/2016.
  */
 
-H = require('../cHeader');
-
+var C = require('../Cell')
 
 //@formatter:off
 
@@ -41,7 +40,7 @@ function testRun(name) {
     if (!test[name]) throw `no such test as ${name}`;
     testName=name;
     clg(`Testing ${name}`);
-    H.cellsReset();
+    C.cellsReset();
     test[name]();
 }
 

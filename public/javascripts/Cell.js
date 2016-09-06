@@ -6,14 +6,60 @@
  * Created by kenneth on 8/31/16.
  */
 
-var H = require('./cHeader')
-    , I = require('./integrity');
-/*
- function clg () {
- var args = Array.prototype.slice.call(arguments);
- console.log.apply(console, args);
- }
- */
+var Q = require('./util/queue');
+
+var causation = new Q.Stack();
+var callStack = new Q.Stack();
+var depender = null;
+var deferChanges = false;
+var clientQHandler = null;
+var gCustomPropagator = null;
+var gNotToBe = false;
+var gCPropDepth = 0;
+var gCDebug = false;
+var gStop = false; // emergency brake
+
+var ppulse = 0;
+function gpulse() {
+    return ppulse;
+}
+var onePulsep = false;
+var dpLogp = false;
+
+function dataPulseNext(who = 'anon') {
+    //clg('datapulsenext entry', who, ppulse);
+    if ( !onePulsep ) {
+        if ( dpLogp ) {
+            clg(`dpnext ${who}`);
+        }
+        ppulse = ppulse+1;
+        //clg(`ppulse now ${ppulse}`);
+    }
+    //clg(`pulseNext exits ${ppulse}`);
+    return ppulse;
+}
+
+function cellsReset(options = {}) {
+    gCDebug = options.debug;
+    clientQHandler = options.clientQHandler;
+    cellsInit();
+}
+
+function cellsInit () {
+    //clg('initcells');
+    ppulse = 0;
+}
+
+function withoutCDependency(fn) {
+    return c=>{ let sd = depender;
+        depender = null;
+        try {
+            return fn(c);
+        } finally {
+            depender = sd
+        }
+    };
+}
 
 function clg() {
     console.log(Array.from(arguments).join(","));
@@ -27,6 +73,123 @@ function find(x,y) {
         return x;
     }
 }
+
+// --- old integrity ----------------------------------------------
+
+
+var gWithinIntegrity = false;
+
+const qNotify = new Q.ArrayQueue();
+const qAwaken = new Q.ArrayQueue();
+const qClient = new Q.ArrayQueue();
+const qEphemReset = new Q.ArrayQueue();
+const qChange = new Q.ArrayQueue();
+
+function ufbAdd( q, task) {
+    q.push( task);
+}
+function qDo (q) {
+    let taskInfo = q.shift();
+    if (taskInfo) {
+        let [deferInfo, task] = taskInfo;
+        task('oops', deferInfo); // sb q opcode
+        qDo(q);
+    }
+}
+
+function finBiz (q) {
+    switch (q) {
+        case qNotify:
+            qDo(q);
+            qDo(qAwaken);
+            finBiz(qNotify.emptyp() ? qClient : qNotify);
+            break;
+        case qClient:
+            (Q.clientQHandler || qDo)(q);
+            finBiz(qClient.emptyp() ? qEphemReset : qClient);
+            break;
+        case qEphemReset:
+            qDo(q);
+            finBiz(qChange);
+            break;
+        case qChange:
+            let work = q.shift();
+            if (work) {
+                let [info, taskfn] = work;
+                dataPulseNext('change');
+                taskfn('change', info);
+                finBiz(qNotify);
+            } // else we fall out, business finished
+    }
+}
+
+function withoutIntegrity (fn) {
+    let wi, dc, cs;
+    wi = gWithinIntegrity;
+    dc = deferChanges;
+    cs = callstack;
+
+    try {
+        gWithinIntegrity = false;
+        deferChanges = false;
+        callstack = new Q.Stack();
+        fn()
+    } finally {
+        gWithinIntegrity = wi;
+        deferChanges = dc;
+        callStack = cs;
+    }
+}
+
+function withIntegrity (queue, deferInfo, action) {
+    if (gStop) return;
+
+    if (gWithinIntegrity) {
+        if (queue) {
+            ufbAdd(queue, [deferInfo, action]);
+            /*
+             assignment is supposed to return the value being installed
+             in the place, but if the SETF is deferred we return
+             something that will help someone who tries to use
+             the setf'ed value figure out what is going on:
+             */
+            return 'deferred-to-ufb';
+        } else {
+            /*
+             So by not supplying an opcode one can get something
+             executed immediately, potentially breaking data integrity
+             but signifying by having coded  with-integrity
+             that one is aware of this.
+
+             If you have read this comment.
+             */
+            action(queue, deferInfo)
+        }
+    } else {
+        let wi = gWithinIntegrity
+            , dc = deferChanges;
+
+        gWithinIntegrity = true;
+        deferChanges = false;
+        try {
+            if ((!gpulse()) || queue == qChange) {
+                dataPulseNext('cwi');
+            }
+            let result = action(queue, deferInfo);
+            finBiz(qNotify);
+            return result;
+        } finally {
+            gWithinIntegrity = wi;
+            deferChanges = dc;
+        }
+    }
+}
+
+function withChg(id, fn) {
+    withIntegrity( qChange, id, fn);
+}
+
+// --- end old integrity ----------------------
 
 const kUnbound = Symbol("unbound");
 const kUncurrent = Symbol("uncurrent");
@@ -63,10 +226,10 @@ class Cell {
         if (formula) {
             this.rule = formula;
             this.pv = kUnbound;
-            this.state = H.kNascent;
+            this.state = kNascent;
         } else {
             this.pv = value;
-            this.state = H.kValid;
+            this.state = kValid;
         }
         Object.defineProperty(this
             , 'v', {
@@ -99,23 +262,23 @@ class Cell {
         return !uct(newv, oldv);
     }
     currentp() {
-        //clg(`currentp this pulse ${this.pulse} vs pulse ${H.gpulse()}`);
-        return this.pulse >= H.gpulse();
+        //clg(`currentp this pulse ${this.pulse} vs pulse ${gpulse()}`);
+        return this.pulse >= gpulse();
     }
     pulseUpdate(key='anon') {
         if (!this.optimizedAwayp()) {
-            ast(H.gpulse() >= this.pulse);
-            this.pulse = H.gpulse();
+            ast(gpulse() >= this.pulse);
+            this.pulse = gpulse();
         }
     }
 
     ensureValueIsCurrent(tag, ensurer) {
         //clg('evic entry ', this.name);
-        if (H.gNotToBe) {
+        if (gNotToBe) {
             //clg('not2be');
             return (this.boundp && this.validp()) ? this.pv : null;
         } else if (this.currentp()) {
-            //clg('currentp',this.pulse,H.gpulse());
+            //clg('currentp',this.pulse,gpulse());
             return this.pv;
         } else if (this.inputp
                     && this.validp()
@@ -144,6 +307,7 @@ class Cell {
                     // possible if a used's observer queried me
                     //clg('calcnset!!', this.name);
                     this.calcNSet('evic', ensurer);
+                    //clg('cnset left', this.pv.toString())
                 } //else clg('late currentp');
                 return this.pv;
             } else {
@@ -157,30 +321,31 @@ class Cell {
     slotValue() {
         let rv = undefined
             , self = this;
-        // clg('cget depender in '+H.depender);
-        I.withIntegrity(null,null, function () {
+        //clg('cget depender in '+depender);
+        withIntegrity(null,null, function () {
             let vPrior = self.pv;
             rv = self.ensureValueIsCurrent( 'c-read', null);
-            if (!self.md && self.state == 'nascent'
-                && H.gpulse() > self.pulseObserved) {
-                self.state = 'awake';
+            //clg('evic said',rv.toString());
+            if (!self.md && self.state == kNascent
+                && gpulse() > self.pulseObserved) {
+                self.state = kAwake;
                 self.observe(vPrior, 'cget');
                 self.ephemeralReset();
             }
         });
-        if (H.depender) {
-            H.depender.recordDependency(this);
+        if (depender) {
+            depender.recordDependency(this);
         } //else clg('cget no depender '+rv);
         return rv;
     }
 
     slotValueSet(newv) {
-        if (H.deferChanges) {
+        if (deferChanges) {
             throw `Assign to ${this.name} must be deferred by wrapping it in WITH-INTEGRITY`;
         } else if (find(this.lazy, [kOnceAsked, kAlways, true])) {
             this.valueAssume(newv, null);
         } else {
-            I.withChg(this.name, ()=>{
+            withChg(this.name, ()=>{
                 this.valueAssume( newv, null);
             })
         }
@@ -188,45 +353,45 @@ class Cell {
 
     propagate(vPrior, callers) {
         // might not need to pass in callers
-        if (H.onePulsep) {
-            if (H.gCustomPropagator) {
-                H.gCustomPropagator(this, vPrior);
+        if (onePulsep) {
+            if (gCustomPropagator) {
+                gCustomPropagator(this, vPrior);
             }
         } else {
-            this.pulseLastChanged = H.gpulse();
-            let dp = H.depender
-                , cs = H.callStack
-                , pd = H.propDepth
-                , dc = H.deferChanges;
+            this.pulseLastChanged = gpulse();
+            let dp = depender
+                , cs = callStack
+                , pd = gCPropDepth
+                , dc = deferChanges;
             try {
                 if (vPrior && this.slotOwning) {
                     // uhoh - when we get to models
                     // call not-to-be on those lostOK
                 }
                 this.propagateToCallers( callers);
-                if (H.gpulse() > this.pulseObserved
+                if (gpulse() > this.pulseObserved
                     || find(this.lazy, [kOnceAsked, kAlways,true])) {
                     this.observe(vPrior,'propagate');
                 }
                 this.ephemeralReset();
             } finally {
-                H.depender = dp;
-                H.callStack = cs;
-                H.propDepth = pd;
-                H.deferChanges = dc;
+                depender = dp;
+                callStack = cs;
+                gCPropDepth = pd;
+                deferChanges = dc;
             }
         }
     }
     propagateToCallers(callers) {
         if (callers.size) {
             let c = this;
-            I.withIntegrity(I.qNotify, c, ()=> {
-                H.causation.push(c); // this was (kinda) outside withIntegrity
+            withIntegrity(qNotify, c, ()=> {
+                causation.push(c); // this was (kinda) outside withIntegrity
                 try {
                     for (let caller of callers.values()) {
                         //clg('caller lazy '+ caller.lazy.toString());
                         //clg('caller pv '+ caller.pv.toString());
-                        //clg('caller pulse/pulse ', caller.pulse, H.gpulse());
+                        //clg('caller pulse/pulse ', caller.pulse, gpulse());
                         if (!(caller.state == 'quiesced'
                             || caller.currentp()
                             || find(caller.lazy, [true, kAlways,kOnceAsked])
@@ -236,7 +401,7 @@ class Cell {
                         }
                     }
                 } finally {
-                    H.causation.pop();
+                    causation.pop();
                 }
         })
         }
@@ -245,6 +410,7 @@ class Cell {
     calcNSet(dbgId, dbgData) {
         //  Calculate, link, record, and propagate.
         let rawValue = this.calcNLink();
+        //T.clg('rawval', rawValue);
         if (!this.optimizedAwayp()) {
             /*
             this check for optimized-away? arose because a rule using without-c-dependency
@@ -252,6 +418,7 @@ class Cell {
             re-exit will be of an optimized away cell, which will have been assumed
             as part of the opti-away processing.
             */
+            //clg('assuming ', rawValue.toString())
             return this.valueAssume(rawValue, null);
         }
     }
@@ -261,19 +428,21 @@ class Cell {
          rule of a formula and return its value, but along the
          way the links between dependencies and dependents get
          determined anew. */
-        let dp = H.depender
-            , dc = H.deferChanges;
+        let dp = depender
+            , dc = deferChanges;
+
+        depender = this;
+        deferChanges = true;
 
         try {
-            H.callStack.push(this);
-            H.depender = this;
-            H.deferChanges = true;
+            callStack.push(this);
             this.unlinkFromUsed('pre-rule-clear');
+            //T.clg('calling '+this.rule.toString());
             return this.rule(this);
         } finally {
-            H.callStack.pop();
-            H.depender = dp;
-            H.deferChanges = dc;
+            callStack.pop();
+            depender = dp;
+            deferChanges = dc;
         }
     }
     awaken() {
@@ -282,8 +451,8 @@ class Cell {
                 this.calcNSet('c-awaken');
             }
         } else {
-            //clg('awk pulses', H.gpulse(),this.pulseObserved);
-            if (H.gpulse() > this.pulseObserved) {
+            //clg('awk pulses', gpulse(),this.pulseObserved);
+            if (gpulse() > this.pulseObserved) {
                 // apparently double calls have occurred
                 if (this.md) {
                     this.md[this.name] = this.pv;
@@ -304,7 +473,7 @@ class Cell {
              and all observers completed (which happens with recalc).
              */
             let self = this;
-            I.withIntegrity( I.qEphemReset, this, function () {
+            withIntegrity( qEphemReset, this, function () {
                 self.pv = null;
             });
         }
@@ -312,11 +481,14 @@ class Cell {
 
     valueAssume( newValue, propCode) {
         let self = this;
-        H.withoutCDependency(()=>{
+        //clg('val ass etry', newValue);
+        withoutCDependency(()=>{
+            //clg('valass entry');
            let priorValue = self.pv
                 , priorState = self.valueState();
             self.pv = newValue;
-            self.state = 'awake';
+            //clg('self pv now',self.pv);
+            self.state = kAwake;
             if (self.md && !self.synapticp) {
                 mdSlotValueStore( self.md, self.name, newValue);
             }
@@ -340,7 +512,7 @@ class Cell {
                     self.propagate(priorValue, self.callers);
                 }
             }
-        });
+        })();
         return newValue;
     }
     unlinkFromUsed(why) {
@@ -420,22 +592,13 @@ function cF(formula, options) {
         , options);
 }
 
-function withoutCDependency(fn) {
-    return c=>{ let sd = H.depender;
-            H.depender = null;
-            try {
-                return fn(c);
-            } finally {
-                H.depender = sd
-            }
-    };
-}
+
 // todo get consistent with all cMakers accepting options
 // todo validate options against, eg, ephmeralp
 
 function cF1(formula, options) {
     return Object.assign( new Cell(null
-                                , withoutCDependency(formula)
+                                , (c)=>{return withoutCDependency(formula)(c)}
                                 , false, false, null)
         , options);
 }
@@ -489,3 +652,10 @@ module.exports.kOnceAsked = kOnceAsked;
 module.exports.kUntilAsked = kUntilAsked;
 module.exports.kAlways = kAlways;
 module.exports.find = find;
+module.exports.cellsReset = cellsReset;
+
+module.exports.withIntegrity = withIntegrity;
+module.exports.withChg = withChg;
+module.exports.qNotify = qNotify;
+module.exports.qAwaken = qAwaken;
+module.exports.qEphemReset = qEphemReset;
