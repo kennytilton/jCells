@@ -6,9 +6,11 @@ So far I have pure Cells ported and DEFMODEL has taken significant baby steps.
 
 I am looking at a fuller treatment of models than in Rube since Javascript has better support for objects than does Clojure. (You can define getters and setters and a constructor, things that matter for transparency -- and we like transparency.)
 
-Next up, families and kids.
+Next up, families and kids. That addresses the problem ReactJS is trying to solve* with their new work on [so-called contexts](https://facebook.github.io/react/docs/context.html), and which lots of folks are trying to solve with databinding and/or FRP, viz., how do I neatly adjust my own state (color, enabledness, label) based on the state of other widgets? eg, I am the "Delete All" button. I should not be enabled (or perhaps appear) unless something else somewhere has been selected. Wait, I have gotten ahead of myself...
 
-Then I will turn it into jWeb, a web application framework involving nothing but HTML and CSS. And jCells, but that is no harder to learn than VisiCalc. (Look it up.) I have done this before in MCL, Windows GDK, Tcl/Tk, OpenGL, qooxdoo and qooxdoo mobile so it should go well, especially since the HTML and CSS will be your problem. I mean that in a good way.
+[* They seem a little half-hearted about it: "Using context will make your code harder to understand because it makes the data flow less clear" and "if you have to use context, use it sparingly" and "try to isolate your use of context to a small area" and "if you are just getting started with React, you likely do not want to use context". OK, quarter-hearted.]
+
+Once I have families interdependent (2016-09-09?) I will start on jWeb, a web application framework involving nothing but HTML and CSS. And jCells, but that is no harder to learn than VisiCalc. (Look it up.) I have done this before in MCL, Windows GDK, Tcl/Tk, OpenGL, qooxdoo and qooxdoo mobile so it should go well, especially since the HTML and CSS will be your problem. I mean that in a good way.
 
 jWeb will be different than most frameworks, because it works inside out instead of outside in.
 
